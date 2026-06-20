@@ -67,7 +67,7 @@ function Header() {
         </div>
         <div className="nav__footer">
           <p>Europe's next political generation.</p>
-          <a href="/AORB_Brand_Identity_and_Manifesto.pdf" download onClick={() => setOpen(false)}>Founding document <ExternalLink aria-hidden="true" /></a>
+          <a href="/AORB_Founding_Manifesto.pdf" download onClick={() => setOpen(false)}>Founding manifesto <ExternalLink aria-hidden="true" /></a>
         </div>
       </nav>
     </header>
@@ -181,7 +181,7 @@ function Closing() {
       <div className="closing__mark" aria-hidden="true">A</div>
       <h2>Build the Europe<br />that does not yet exist<span>.</span></h2>
       <div className="closing__actions">
-        <ArrowLink href="/AORB_Brand_Identity_and_Manifesto.pdf" download>Read the founding document</ArrowLink>
+        <ArrowLink href="/AORB_Founding_Manifesto.pdf" download>Read the founding manifesto</ArrowLink>
         <button className="action action--dark" type="button" onClick={copySite}>
           <span>{copied ? 'aorb.eu copied' : 'Copy aorb.eu'}</span><ExternalLink size={18} strokeWidth={1.7} />
         </button>
