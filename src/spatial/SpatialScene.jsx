@@ -5,6 +5,9 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js'
+import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js'
+import { RGBShiftShader } from 'three/examples/jsm/shaders/RGBShiftShader.js'
+import { VignetteShader } from 'three/examples/jsm/shaders/VignetteShader.js'
 
 const VIOLET = 0x7c3aed
 const CYAN = 0x00d9ff
@@ -68,7 +71,8 @@ function addEuFlag(parent, x, y, z) {
 
 function addChamber(scene) {
   const chamber = new THREE.Group()
-  const floor = mesh(new THREE.CylinderGeometry(8.5, 8.5, 0.22, 72), material(0x11131a, 0.38, 0.35), [0, -0.18, 0])
+  const floorMaterial = new THREE.MeshPhysicalMaterial({ color: 0x0b1019, roughness: 0.2, metalness: 0.62, clearcoat: 1, clearcoatRoughness: 0.16 })
+  const floor = mesh(new THREE.CylinderGeometry(8.5, 8.5, 0.22, 72), floorMaterial, [0, -0.18, 0])
   chamber.add(floor)
 
   const ring = mesh(new THREE.TorusGeometry(7.5, 0.055, 8, 96), new THREE.MeshStandardMaterial({ color: VIOLET, emissive: VIOLET, emissiveIntensity: 2.2 }), [0, 0.02, 0])
@@ -116,6 +120,7 @@ function addTechnoRig(scene) {
   const beams = []
   const pulseRings = []
   const equalizerBars = []
+  const ceilingRings = []
   const colors = [VIOLET, CYAN, RED, VIOLET, CYAN, RED]
 
   colors.forEach((color, index) => {
@@ -128,7 +133,7 @@ function addTechnoRig(scene) {
       depthWrite: false,
       side: THREE.DoubleSide,
     })
-    const beam = mesh(new THREE.ConeGeometry(0.52, 6.8, 20, 1, true), beamMaterial, [Math.cos(angle) * 4.5, 3.3, Math.sin(angle) * 4.5 - 1.2])
+    const beam = mesh(new THREE.ConeGeometry(0.22, 6.8, 16, 1, true), beamMaterial, [Math.cos(angle) * 4.5, 3.3, Math.sin(angle) * 4.5 - 1.2])
     beam.rotation.z = Math.sin(angle) * 0.11
     beam.rotation.x = Math.cos(angle) * 0.11
     beams.push(beam)
@@ -154,8 +159,23 @@ function addTechnoRig(scene) {
     rig.add(bar)
   }
 
+  ;[2.5, 4.1, 6.1].forEach((radius, index) => {
+    const color = index === 1 ? RED : index === 2 ? CYAN : VIOLET
+    const haloMaterial = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.34, blending: THREE.AdditiveBlending, depthWrite: false })
+    const halo = mesh(new THREE.TorusGeometry(radius, 0.026 + index * 0.008, 8, 120), haloMaterial, [0, 5.45 + index * 0.22, -1.05])
+    halo.rotation.x = Math.PI / 2
+    halo.rotation.z = index * 0.18
+    ceilingRings.push(halo)
+    rig.add(halo)
+  })
+
+  const scannerMaterial = new THREE.MeshBasicMaterial({ color: CYAN, transparent: true, opacity: 0.08, blending: THREE.AdditiveBlending, depthWrite: false })
+  const scannerRing = mesh(new THREE.TorusGeometry(3.2, 0.022, 6, 120), scannerMaterial, [0, 0.3, -0.55])
+  scannerRing.rotation.x = Math.PI / 2
+  rig.add(scannerRing)
+
   scene.add(rig)
-  return { rig, beams, pulseRings, equalizerBars }
+  return { rig, beams, pulseRings, equalizerBars, ceilingRings, scannerRing }
 }
 
 function cylinderBetween(start, end, radius, surface, segments = 18) {
@@ -371,9 +391,16 @@ const SpatialScene = forwardRef(function SpatialScene({ onReady }, ref) {
     const useBloom = mount.clientWidth >= 700
     const composer = useBloom ? new EffectComposer(renderer) : null
     const bloomPass = useBloom ? new UnrealBloomPass(new THREE.Vector2(mount.clientWidth, mount.clientHeight), 0.18, 0.2, 0.94) : null
+    const rgbPass = useBloom ? new ShaderPass(RGBShiftShader) : null
+    const vignettePass = useBloom ? new ShaderPass(VignetteShader) : null
     if (composer && bloomPass) {
       composer.addPass(new RenderPass(scene, camera))
       composer.addPass(bloomPass)
+      rgbPass.uniforms.amount.value = 0.00022
+      vignettePass.uniforms.offset.value = 1.06
+      vignettePass.uniforms.darkness.value = 1.16
+      composer.addPass(rgbPass)
+      composer.addPass(vignettePass)
       composer.addPass(new OutputPass())
     }
 
@@ -467,7 +494,7 @@ const SpatialScene = forwardRef(function SpatialScene({ onReady }, ref) {
       chamberFx.dais.scale.y = 1 + pulse * 0.08
       technoFx.rig.rotation.y = elapsed * 0.025
       technoFx.beams.forEach((beam, index) => {
-        beam.material.opacity = 0.025 + pulse * (0.16 + (index % 2) * 0.035)
+        beam.material.opacity = 0.012 + pulse * (0.06 + (index % 2) * 0.018)
         beam.rotation.y = elapsed * (index % 2 ? -0.055 : 0.045) + index
       })
       technoFx.pulseRings.forEach((floorRing, index) => {
@@ -482,7 +509,17 @@ const SpatialScene = forwardRef(function SpatialScene({ onReady }, ref) {
         bar.position.y = 0.56 + bar.scale.y * 0.5
         bar.material.emissiveIntensity = 1.6 + spectrumValue * 5.4
       })
+      technoFx.ceilingRings.forEach((halo, index) => {
+        halo.rotation.z = elapsed * (index % 2 ? -0.035 : 0.028) + index * 0.18
+        halo.material.opacity = 0.18 + pulse * (0.28 + index * 0.04)
+      })
+      technoFx.scannerRing.position.y = 0.25 + ((elapsed * 0.38) % 1) * 3.4
+      technoFx.scannerRing.material.opacity = 0.035 + pulse * 0.16
       if (bloomPass) bloomPass.strength = 0.13 + pulse * 0.24
+      if (rgbPass) {
+        rgbPass.uniforms.amount.value = 0.00014 + pulse * 0.00062
+        rgbPass.uniforms.angle.value = elapsed * 0.12
+      }
       atmosphere.material.size = 0.016 + pulse * 0.026
       atmosphere.rotation.y = elapsed * 0.008
       if (cameraMoving) {
