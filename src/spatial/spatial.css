@@ -36,6 +36,51 @@ button, a { font: inherit; }
 .spatial-canvas, .spatial-canvas canvas { width: 100%; height: 100%; display: block; touch-action: none; }
 .spatial-canvas { position: absolute; inset: 0; }
 
+.cinematic-layer {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  background: #05070c;
+  transition: opacity .55s ease, visibility .55s ease;
+}
+
+.cinematic-layer--visible { opacity: 1; visibility: visible; }
+.cinematic-layer img { width: 100%; height: 100%; display: block; object-fit: cover; object-position: center; }
+
+.mode-switch {
+  position: absolute;
+  z-index: 5;
+  top: auto;
+  bottom: 103px;
+  left: 50%;
+  display: flex;
+  padding: 5px;
+  transform: translateX(-50%);
+  border: 1px solid rgba(255, 255, 255, .16);
+  background: rgba(4, 6, 10, .72);
+  backdrop-filter: blur(16px);
+}
+
+.mode-switch button {
+  min-height: 38px;
+  padding: 0 15px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  color: rgba(255, 255, 255, .58);
+  background: transparent;
+  font: 500 .64rem/1 'IBM Plex Mono', monospace;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.mode-switch button.active { color: #fff; background: rgba(124, 58, 237, .8); }
+
 .spatial-header {
   position: absolute;
   z-index: 4;
@@ -223,6 +268,9 @@ button, a { font: inherit; }
   .spatial-status { display: none; }
   .spatial-logo { font-size: 1.28rem; }
   .back-link { font-size: .61rem; }
+  .mode-switch { top: 74px; bottom: auto; width: calc(100% - 24px); }
+  .mode-switch button { flex: 1; justify-content: center; min-height: 36px; padding: 0 7px; font-size: .58rem; }
+  .cinematic-layer img { object-fit: contain; object-position: center; }
   .spatial-copy { top: 86px; left: 18px; width: 85vw; }
   .spatial-copy h1 { font-size: clamp(2.35rem, 11vw, 3.25rem); line-height: .88; }
   .spatial-copy p { width: 78vw; margin-top: 13px; font-size: .69rem; line-height: 1.45; }

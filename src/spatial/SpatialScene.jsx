@@ -106,107 +106,149 @@ function addChamber(scene) {
   scene.add(chamber)
 }
 
+function cylinderBetween(start, end, radius, surface, segments = 18) {
+  const from = new THREE.Vector3(...start)
+  const to = new THREE.Vector3(...end)
+  const direction = to.clone().sub(from)
+  const limb = mesh(new THREE.CylinderGeometry(radius, radius * 1.04, direction.length(), segments), surface)
+  limb.position.copy(from.clone().add(to).multiplyScalar(0.5))
+  limb.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction.normalize())
+  return limb
+}
+
 function addEye(parent, x, y, z) {
-  const white = mesh(new THREE.SphereGeometry(0.055, 16, 10), material(0xf5f3ea, 0.5), [x, y, z])
-  white.scale.set(1.2, 0.72, 0.42)
-  const pupil = mesh(new THREE.SphereGeometry(0.022, 12, 8), material(0x1c2430, 0.3), [x, y, z + 0.045])
+  const white = mesh(new THREE.SphereGeometry(0.036, 18, 12), material(0xf5f3ea, 0.52), [x, y, z])
+  white.scale.set(1.18, 0.58, 0.36)
+  const pupil = mesh(new THREE.SphereGeometry(0.012, 12, 8), material(0x17202b, 0.3), [x, y, z + 0.031])
   parent.add(white, pupil)
+}
+
+function addFaceDetails(group, skin, y) {
+  const leftEar = mesh(new THREE.SphereGeometry(0.07, 18, 12), skin, [-0.31, y + 0.02, 0.05])
+  const rightEar = mesh(new THREE.SphereGeometry(0.07, 18, 12), skin, [0.31, y + 0.02, 0.05])
+  leftEar.scale.set(0.55, 1, 0.45)
+  rightEar.scale.copy(leftEar.scale)
+  const mouth = mesh(new THREE.BoxGeometry(0.13, 0.015, 0.015), material(0x6d3032, 0.8), [0, y - 0.16, 0.36])
+  group.add(leftEar, rightEar, mouth)
 }
 
 function createRebel() {
   const group = new THREE.Group()
-  const purple = material(0x381365, 0.54, 0.16)
-  const black = material(0x090b10, 0.32, 0.56)
-  const skin = material(0xc58e70, 0.68)
+  const purple = material(0x35135f, 0.67, 0.12)
+  const purpleDark = material(0x160d25, 0.52, 0.28)
+  const black = material(0x07090d, 0.3, 0.62)
+  const skin = material(0xb97d60, 0.72)
   const glow = new THREE.MeshStandardMaterial({ color: CYAN, emissive: CYAN, emissiveIntensity: 3.2, roughness: 0.25 })
 
-  const torso = mesh(new THREE.CapsuleGeometry(0.58, 1.04, 8, 18), purple, [0, 1.55, 0])
-  torso.scale.set(1.08, 1, 0.62)
-  const yoke = mesh(new THREE.BoxGeometry(1.23, 0.42, 0.55), black, [0, 2.16, 0.04])
+  const torso = mesh(new THREE.CylinderGeometry(0.42, 0.5, 1.18, 32), purple, [0, 1.55, 0])
+  torso.scale.z = 0.68
+  const shoulders = mesh(new THREE.CapsuleGeometry(0.22, 0.78, 6, 20), purple, [0, 2.02, 0])
+  shoulders.rotation.z = Math.PI / 2
+  shoulders.scale.z = 0.66
+  const neck = mesh(new THREE.CylinderGeometry(0.14, 0.16, 0.24, 20), skin, [0, 2.27, 0.03])
+  const yoke = mesh(new THREE.BoxGeometry(1.02, 0.3, 0.5), purpleDark, [0, 2.03, 0.04])
   yoke.rotation.x = -0.08
-  group.add(torso, yoke)
+  group.add(torso, shoulders, neck, yoke)
 
-  const head = mesh(new THREE.SphereGeometry(0.39, 40, 28), skin, [0, 2.82, 0.08])
-  head.scale.set(0.88, 1.12, 0.92)
-  const nose = mesh(new THREE.ConeGeometry(0.07, 0.2, 16), skin, [0, 2.78, 0.43])
+  const head = mesh(new THREE.SphereGeometry(0.34, 48, 32), skin, [0, 2.62, 0.08])
+  head.scale.set(0.86, 1.08, 0.9)
+  const jaw = mesh(new THREE.SphereGeometry(0.27, 32, 20), skin, [0, 2.5, 0.11])
+  jaw.scale.set(0.92, 0.72, 0.9)
+  const nose = mesh(new THREE.ConeGeometry(0.055, 0.17, 18), skin, [0, 2.61, 0.39])
   nose.rotation.x = Math.PI / 2
-  group.add(head, nose)
+  group.add(head, jaw, nose)
+  addFaceDetails(group, skin, 2.6)
 
-  const goggleFrame = material(0x050608, 0.2, 0.82)
-  ;[-0.15, 0.15].forEach((x) => {
-    const rim = mesh(new THREE.TorusGeometry(0.12, 0.035, 10, 28), goggleFrame, [x, 2.91, 0.43])
-    const lens = mesh(new THREE.CircleGeometry(0.1, 28), new THREE.MeshStandardMaterial({ color: 0x06040a, metalness: 0.55, roughness: 0.1, emissive: 0x21053d, emissiveIntensity: 0.35 }), [x, 2.91, 0.447])
+  const goggleFrame = material(0x030405, 0.2, 0.86)
+  ;[-0.125, 0.125].forEach((x) => {
+    const rim = mesh(new THREE.TorusGeometry(0.1, 0.028, 12, 32), goggleFrame, [x, 2.69, 0.39])
+    const lens = mesh(new THREE.CircleGeometry(0.085, 32), new THREE.MeshPhysicalMaterial({ color: 0x030207, metalness: 0.45, roughness: 0.06, clearcoat: 1, emissive: 0x1b0634, emissiveIntensity: 0.42 }), [x, 2.69, 0.405])
     group.add(rim, lens)
   })
-  const bridge = mesh(new THREE.BoxGeometry(0.1, 0.03, 0.035), goggleFrame, [0, 2.91, 0.45])
-  group.add(bridge)
+  const bridge = mesh(new THREE.BoxGeometry(0.08, 0.025, 0.03), goggleFrame, [0, 2.69, 0.41])
+  const strap = mesh(new THREE.TorusGeometry(0.3, 0.018, 8, 40, Math.PI), goggleFrame, [0, 2.69, 0.05])
+  strap.rotation.z = Math.PI
+  group.add(bridge, strap)
 
-  const armGeometry = new THREE.CapsuleGeometry(0.16, 0.78, 6, 14)
-  const leftArm = mesh(armGeometry, purple, [-0.67, 1.53, 0.12])
-  leftArm.rotation.z = -0.23
-  const rightArm = mesh(armGeometry, purple, [0.67, 1.53, 0.12])
-  rightArm.rotation.z = 0.23
-  const leftHand = mesh(new THREE.SphereGeometry(0.17, 20, 16), black, [-0.78, 0.95, 0.26])
-  const rightHand = mesh(new THREE.SphereGeometry(0.17, 20, 16), black, [0.78, 0.95, 0.26])
-  group.add(leftArm, rightArm, leftHand, rightHand)
+  const upperLeft = cylinderBetween([-0.49, 1.95, 0], [-0.55, 1.47, 0.18], 0.125, purple)
+  const upperRight = cylinderBetween([0.49, 1.95, 0], [0.55, 1.47, 0.18], 0.125, purple)
+  const lowerLeft = cylinderBetween([-0.55, 1.47, 0.18], [-0.27, 1.2, 0.49], 0.115, purple)
+  const lowerRight = cylinderBetween([0.55, 1.47, 0.18], [0.27, 1.2, 0.49], 0.115, purple)
+  const leftHand = mesh(new THREE.SphereGeometry(0.135, 24, 18), black, [-0.26, 1.18, 0.51])
+  const rightHand = mesh(new THREE.SphereGeometry(0.135, 24, 18), black, [0.26, 1.18, 0.51])
+  leftHand.scale.set(0.76, 1.12, 0.58)
+  rightHand.scale.copy(leftHand.scale)
+  group.add(upperLeft, upperRight, lowerLeft, lowerRight, leftHand, rightHand)
 
-  const stripe = mesh(new THREE.BoxGeometry(0.055, 1.5, 0.02), glow, [-0.49, 1.52, 0.35])
-  stripe.rotation.z = -0.15
-  const badge = mesh(new THREE.OctahedronGeometry(0.13, 0), material(0xc9cbd3, 0.2, 0.92), [0.31, 2.02, 0.34])
-  badge.scale.set(0.55, 1.3, 0.22)
-  group.add(stripe, badge)
+  const stripe = mesh(new THREE.BoxGeometry(0.038, 1.08, 0.018), glow, [-0.36, 1.56, 0.35])
+  stripe.rotation.z = -0.13
+  const collarGlow = mesh(new THREE.TorusGeometry(0.19, 0.012, 6, 36, Math.PI * 1.65), new THREE.MeshStandardMaterial({ color: 0xff37cc, emissive: 0xff37cc, emissiveIntensity: 2.2 }), [0, 2.23, 0.11])
+  collarGlow.rotation.x = Math.PI / 2
+  const badge = mesh(new THREE.OctahedronGeometry(0.105, 0), material(0xd9dce5, 0.18, 0.94), [0.27, 1.94, 0.35])
+  badge.scale.set(0.5, 1.35, 0.2)
+  group.add(stripe, collarGlow, badge)
 
-  group.position.set(-1.55, 0, 0.35)
-  group.rotation.y = 0.38
+  group.position.set(-1.5, 0, 0.35)
+  group.rotation.y = 0.34
   group.userData.label = 'AORB rebel'
   return group
 }
 
 function createUrsula() {
   const group = new THREE.Group()
-  const cream = material(0xd9d0c3, 0.78, 0.03)
-  const skin = material(0xd8aa8f, 0.72)
-  const hair = material(0xc9a76d, 0.74, 0.02)
+  const cream = material(0xd7cec1, 0.82, 0.02)
+  const creamDark = material(0xbeb3a5, 0.84, 0.02)
+  const skin = material(0xd2a085, 0.76)
+  const hair = material(0xc6a56f, 0.76, 0.02)
   const dark = material(0x171b21, 0.7)
 
-  const torso = mesh(new THREE.CapsuleGeometry(0.54, 0.95, 8, 18), cream, [0, 1.5, 0])
-  torso.scale.set(1, 1, 0.6)
-  const lapelA = mesh(new THREE.BoxGeometry(0.3, 0.78, 0.04), cream, [-0.17, 1.72, 0.34])
+  const torso = mesh(new THREE.CylinderGeometry(0.38, 0.47, 1.1, 32), cream, [0, 1.5, 0])
+  torso.scale.z = 0.67
+  const shoulders = mesh(new THREE.CapsuleGeometry(0.2, 0.7, 6, 20), cream, [0, 1.94, 0])
+  shoulders.rotation.z = Math.PI / 2
+  shoulders.scale.z = 0.65
+  const neck = mesh(new THREE.CylinderGeometry(0.13, 0.15, 0.22, 20), skin, [0, 2.18, 0.03])
+  const lapelA = mesh(new THREE.BoxGeometry(0.24, 0.62, 0.035), creamDark, [-0.14, 1.7, 0.32])
   lapelA.rotation.z = -0.22
-  const lapelB = mesh(new THREE.BoxGeometry(0.3, 0.78, 0.04), cream, [0.17, 1.72, 0.34])
+  const lapelB = mesh(new THREE.BoxGeometry(0.24, 0.62, 0.035), creamDark, [0.14, 1.7, 0.32])
   lapelB.rotation.z = 0.22
-  group.add(torso, lapelA, lapelB)
+  group.add(torso, shoulders, neck, lapelA, lapelB)
 
-  const head = mesh(new THREE.SphereGeometry(0.36, 40, 28), skin, [0, 2.69, 0.08])
-  head.scale.set(0.86, 1.08, 0.9)
-  const nose = mesh(new THREE.ConeGeometry(0.06, 0.18, 16), skin, [0, 2.66, 0.41])
+  const head = mesh(new THREE.SphereGeometry(0.325, 48, 32), skin, [0, 2.51, 0.08])
+  head.scale.set(0.84, 1.08, 0.9)
+  const jaw = mesh(new THREE.SphereGeometry(0.25, 32, 20), skin, [0, 2.39, 0.11])
+  jaw.scale.set(0.9, 0.72, 0.88)
+  const nose = mesh(new THREE.ConeGeometry(0.05, 0.16, 18), skin, [0, 2.5, 0.375])
   nose.rotation.x = Math.PI / 2
-  group.add(head, nose)
-  addEye(group, -0.12, 2.76, 0.41)
-  addEye(group, 0.12, 2.76, 0.41)
+  group.add(head, jaw, nose)
+  addEye(group, -0.1, 2.57, 0.37)
+  addEye(group, 0.1, 2.57, 0.37)
+  addFaceDetails(group, skin, 2.49)
 
-  const hairCap = mesh(new THREE.SphereGeometry(0.39, 28, 18, 0, Math.PI * 2, 0, Math.PI * 0.58), hair, [0, 2.83, 0.02])
-  hairCap.scale.set(1.06, 0.9, 1.03)
+  const hairCap = mesh(new THREE.SphereGeometry(0.35, 34, 22, 0, Math.PI * 2, 0, Math.PI * 0.6), hair, [0, 2.66, 0.01])
+  hairCap.scale.set(1.08, 0.88, 1.04)
   group.add(hairCap)
-  for (let index = 0; index < 9; index += 1) {
-    const angle = (index / 9) * Math.PI * 2
-    const curl = mesh(new THREE.SphereGeometry(0.12, 14, 10), hair, [Math.cos(angle) * 0.34, 2.78 + Math.sin(angle * 2) * 0.07, -0.02 + Math.sin(angle) * 0.22])
-    curl.scale.set(1.4, 0.75, 0.75)
+  for (let index = 0; index < 12; index += 1) {
+    const angle = (index / 12) * Math.PI * 2
+    const curl = mesh(new THREE.SphereGeometry(0.085, 16, 12), hair, [Math.cos(angle) * 0.31, 2.59 + Math.sin(angle * 2) * 0.065, -0.01 + Math.sin(angle) * 0.23])
+    curl.scale.set(1.5, 0.72, 0.72)
+    curl.rotation.z = angle * 0.5
     group.add(curl)
   }
 
-  const armGeometry = new THREE.CapsuleGeometry(0.145, 0.74, 6, 14)
-  const leftArm = mesh(armGeometry, cream, [-0.61, 1.48, 0.1])
-  leftArm.rotation.z = -0.19
-  const rightArm = mesh(armGeometry, cream, [0.61, 1.48, 0.1])
-  rightArm.rotation.z = 0.19
-  const hands = mesh(new THREE.SphereGeometry(0.16, 18, 14), skin, [0, 1.03, 0.45])
-  hands.scale.set(1.35, 0.75, 0.8)
-  const pin = mesh(new THREE.BoxGeometry(0.1, 0.1, 0.03), dark, [0.36, 2.0, 0.36])
-  group.add(leftArm, rightArm, hands, pin)
+  const upperLeft = cylinderBetween([-0.45, 1.88, 0], [-0.5, 1.43, 0.16], 0.115, cream)
+  const upperRight = cylinderBetween([0.45, 1.88, 0], [0.5, 1.43, 0.16], 0.115, cream)
+  const lowerLeft = cylinderBetween([-0.5, 1.43, 0.16], [-0.12, 1.2, 0.46], 0.103, cream)
+  const lowerRight = cylinderBetween([0.5, 1.43, 0.16], [0.12, 1.2, 0.46], 0.103, cream)
+  const leftHand = mesh(new THREE.SphereGeometry(0.11, 22, 16), skin, [-0.1, 1.18, 0.48])
+  const rightHand = mesh(new THREE.SphereGeometry(0.11, 22, 16), skin, [0.1, 1.18, 0.48])
+  leftHand.scale.set(0.72, 1.05, 0.56)
+  rightHand.scale.copy(leftHand.scale)
+  const pin = mesh(new THREE.BoxGeometry(0.075, 0.075, 0.025), dark, [0.29, 1.91, 0.34])
+  group.add(upperLeft, upperRight, lowerLeft, lowerRight, leftHand, rightHand, pin)
 
-  group.position.set(1.55, 0, 0.35)
-  group.rotation.y = -0.38
+  group.position.set(1.5, 0, 0.35)
+  group.rotation.y = -0.34
   group.userData.label = 'European Commission president'
   return group
 }
@@ -225,7 +267,7 @@ function addAtmosphere(scene) {
 }
 
 const cameraViews = {
-  faceoff: { position: new THREE.Vector3(0, 2.25, 7.2), target: new THREE.Vector3(0, 1.55, 0.1) },
+  faceoff: { position: new THREE.Vector3(0, 2.25, 5.25), target: new THREE.Vector3(0, 1.58, 0.1) },
   rebel: { position: new THREE.Vector3(-3.4, 2.25, 4.05), target: new THREE.Vector3(-1.45, 1.75, 0.3) },
   parliament: { position: new THREE.Vector3(0, 5.25, 10.5), target: new THREE.Vector3(0, 1.75, -2.25) },
   free: { position: new THREE.Vector3(5.6, 3.15, 6.2), target: new THREE.Vector3(0, 1.5, -0.6) },

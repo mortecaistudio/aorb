@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ArrowLeft, Expand, Eye, Pause, Play, Rotate3D } from 'lucide-react'
+import { ArrowLeft, Box, Expand, Eye, Image, Pause, Play, Rotate3D } from 'lucide-react'
 import SpatialScene from './SpatialScene.jsx'
 
 const views = [
@@ -13,6 +13,7 @@ export default function SpatialApp() {
   const [autoRotate, setAutoRotate] = useState(false)
   const [activeView, setActiveView] = useState('faceoff')
   const [loaded, setLoaded] = useState(false)
+  const [cinematic, setCinematic] = useState(() => new URLSearchParams(window.location.search).get('mode') !== 'spatial')
   const handleReady = useCallback(() => setLoaded(true), [])
 
   useEffect(() => {
@@ -21,11 +22,23 @@ export default function SpatialApp() {
   }, [])
 
   const chooseView = useCallback((view) => {
+    setCinematic(false)
     setActiveView(view)
     sceneRef.current?.goTo(view)
   }, [])
 
+  const chooseMode = useCallback((nextCinematic) => {
+    setCinematic(nextCinematic)
+    if (nextCinematic) {
+      setAutoRotate(false)
+      setActiveView('faceoff')
+      sceneRef.current?.setAutoRotate(false)
+      sceneRef.current?.goTo('faceoff')
+    }
+  }, [])
+
   const toggleRotation = useCallback(() => {
+    setCinematic(false)
     setAutoRotate((current) => {
       sceneRef.current?.setAutoRotate(!current)
       return !current
@@ -40,6 +53,9 @@ export default function SpatialApp() {
   return (
     <main className="spatial-shell">
       <SpatialScene ref={sceneRef} onReady={handleReady} />
+      <div className={cinematic ? 'cinematic-layer cinematic-layer--visible' : 'cinematic-layer'} aria-hidden="true">
+        <img src="/assets/aorb-faceoff-reference.webp" alt="" width="1672" height="941" />
+      </div>
 
       <header className="spatial-header">
         <a className="spatial-logo" href="/" aria-label="Return to AORB home">AORB<span>.</span></a>
@@ -47,10 +63,10 @@ export default function SpatialApp() {
         <a className="back-link" href="/"><ArrowLeft size={17} /> Back to site</a>
       </header>
 
-      <section className="spatial-copy" aria-label="Scene introduction">
-        <h1>Enter the<br />new Europe<span>.</span></h1>
-        <p>Rotate the chamber. Inspect the face-off. See the movement from every angle.</p>
-      </section>
+      <div className="mode-switch" aria-label="Presentation mode">
+        <button type="button" className={cinematic ? 'active' : ''} onClick={() => chooseMode(true)}><Image size={16} /> Cinematic</button>
+        <button type="button" className={!cinematic ? 'active' : ''} onClick={() => chooseMode(false)}><Box size={16} /> Spatial 360</button>
+      </div>
 
       <aside className="view-controls" aria-label="Camera views">
         <span>Camera</span>
