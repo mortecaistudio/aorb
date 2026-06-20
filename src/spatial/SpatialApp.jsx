@@ -150,7 +150,7 @@ export default function SpatialApp() {
           {audioPlaying ? <Pause size={18} /> : <Play size={18} />}
         </button>
         <div className="now-playing__meta">
-          <span>Transmission {String(trackIndex + 1).padStart(2, '0')} / {String(tracks.length).padStart(2, '0')}</span>
+          <span>Transmission {String(trackIndex + 1).padStart(2, '0')} / {String(tracks.length).padStart(2, '0')} · Audio reactive</span>
           <strong>{currentTrack.title}</strong>
         </div>
         <div className="now-playing__spectrum" aria-hidden="true">

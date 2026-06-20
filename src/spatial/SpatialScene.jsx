@@ -112,7 +112,7 @@ function addChamber(scene) {
   const dais = mesh(new THREE.CylinderGeometry(1.15, 1.35, 0.42, 40), material(0x211922, 0.38, 0.36), [0, 0.12, -2.4])
   chamber.add(dais)
   scene.add(chamber)
-  return { ring, screenFrame, dais }
+  return { ring, screenFrame, screen, dais }
 }
 
 function addTechnoRig(scene) {
@@ -232,6 +232,59 @@ function addDigitalArchitecture(scene) {
   architecture.add(horizon)
   scene.add(architecture)
   return { architecture, nodes, portals, horizon }
+}
+
+function addReactiveStage(scene) {
+  const stage = new THREE.Group()
+  const grid = new THREE.GridHelper(16, 48, CYAN, VIOLET)
+  grid.position.y = -0.045
+  grid.position.z = -0.6
+  grid.material.transparent = true
+  grid.material.opacity = 0.075
+  grid.material.blending = THREE.AdditiveBlending
+  grid.material.depthWrite = false
+  stage.add(grid)
+
+  const shockwaves = []
+  for (let index = 0; index < 5; index += 1) {
+    const color = index % 2 ? CYAN : VIOLET
+    const surface = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false })
+    const wave = mesh(new THREE.TorusGeometry(1, 0.028, 6, 112), surface, [0, 0.035 + index * 0.002, -0.55])
+    wave.rotation.x = Math.PI / 2
+    wave.scale.setScalar(0.25)
+    wave.userData.life = -1
+    shockwaves.push(wave)
+    stage.add(wave)
+  }
+
+  const hologramMaterial = new THREE.MeshPhysicalMaterial({
+    color: VIOLET,
+    emissive: VIOLET,
+    emissiveIntensity: 1.1,
+    transparent: true,
+    opacity: 0.11,
+    roughness: 0.08,
+    metalness: 0.2,
+    transmission: 0.35,
+    depthWrite: false,
+  })
+  const hologram = mesh(new THREE.CylinderGeometry(0.82, 1.12, 1.9, 48, 1, true), hologramMaterial, [0, 1.02, -2.4])
+  stage.add(hologram)
+
+  const orbiters = new THREE.Group()
+  for (let index = 0; index < 18; index += 1) {
+    const angle = (index / 18) * Math.PI * 2
+    const shard = mesh(
+      new THREE.OctahedronGeometry(0.025 + (index % 3) * 0.007, 0),
+      new THREE.MeshBasicMaterial({ color: index % 4 === 0 ? GOLD : CYAN, transparent: true, opacity: 0.7 }),
+      [Math.cos(angle) * (1.04 + (index % 2) * 0.12), 0.35 + (index % 6) * 0.24, -2.4 + Math.sin(angle) * (1.04 + (index % 2) * 0.12)],
+    )
+    shard.userData.baseY = shard.position.y
+    orbiters.add(shard)
+  }
+  stage.add(orbiters)
+  scene.add(stage)
+  return { stage, grid, shockwaves, hologram, orbiters }
 }
 
 function cylinderBetween(start, end, radius, surface, segments = 18) {
@@ -521,6 +574,7 @@ const SpatialScene = forwardRef(function SpatialScene({ onReady }, ref) {
     const chamberFx = addChamber(scene)
     const technoFx = addTechnoRig(scene)
     const digitalFx = addDigitalArchitecture(scene)
+    const reactiveFx = addReactiveStage(scene)
     const rebel = createRebel()
     const ursula = createUrsula()
     scene.add(rebel, ursula)
@@ -537,6 +591,10 @@ const SpatialScene = forwardRef(function SpatialScene({ onReady }, ref) {
     let bassLevel = 0
     let midLevel = 0
     let highLevel = 0
+    let previousBass = 0
+    let lastBeatAt = -1
+    let shockwaveIndex = 0
+    let kickEnergy = 0
     let pageVisible = !document.hidden
     const rebelBase = { y: rebel.position.y, rotationY: rebel.rotation.y }
     const ursulaBase = { y: ursula.position.y, rotationY: ursula.rotation.y }
@@ -579,6 +637,7 @@ const SpatialScene = forwardRef(function SpatialScene({ onReady }, ref) {
     const animate = () => {
       timer.update()
       const elapsed = timer.getElapsed()
+      const delta = Math.min(timer.getDelta(), 0.05)
       if (!pageVisible) {
         animationFrame = requestAnimationFrame(animate)
         return
@@ -600,6 +659,18 @@ const SpatialScene = forwardRef(function SpatialScene({ onReady }, ref) {
         highLevel += (0.025 - highLevel) * 0.03
       }
       const pulse = Math.max(0.04, bassLevel)
+      const beatDetected = bassLevel > 0.19 && bassLevel > previousBass + 0.018 && elapsed - lastBeatAt > 0.28
+      if (beatDetected) {
+        const wave = reactiveFx.shockwaves[shockwaveIndex % reactiveFx.shockwaves.length]
+        wave.userData.life = 0
+        wave.scale.setScalar(0.3)
+        wave.material.opacity = 0.72
+        shockwaveIndex += 1
+        lastBeatAt = elapsed
+        kickEnergy = Math.min(1, kickEnergy + 0.62)
+      }
+      previousBass = bassLevel
+      kickEnergy *= 0.86
       const dance = reduceMotion ? 0 : Math.min(1, bassLevel * 0.82 + midLevel * 0.48)
       const rebelBeat = Math.sin(elapsed * (3.35 + dance * 1.8))
       const rebelSway = Math.sin(elapsed * 1.9)
@@ -663,6 +734,24 @@ const SpatialScene = forwardRef(function SpatialScene({ onReady }, ref) {
       technoFx.scannerRing.material.opacity = 0.035 + pulse * 0.16
       technoFx.starHalo.rotation.z = elapsed * (0.08 + midLevel * 0.18)
       technoFx.starHalo.scale.setScalar(1 + pulse * 0.09)
+      reactiveFx.grid.material.opacity = 0.045 + pulse * 0.16
+      reactiveFx.hologram.material.opacity = 0.065 + midLevel * 0.2
+      reactiveFx.hologram.material.emissiveIntensity = 0.65 + pulse * 3.4
+      reactiveFx.hologram.rotation.y = elapsed * 0.18
+      reactiveFx.orbiters.rotation.y = elapsed * (0.2 + midLevel * 0.28)
+      reactiveFx.orbiters.children.forEach((shard, index) => {
+        shard.position.y = shard.userData.baseY + Math.sin(elapsed * 2.1 + index) * 0.035
+        shard.scale.setScalar(0.72 + pulse * 1.25 + Math.sin(elapsed * 2.7 + index) * 0.08)
+      })
+      reactiveFx.shockwaves.forEach((wave) => {
+        if (wave.userData.life < 0) return
+        wave.userData.life += delta * (1.18 + pulse * 0.9)
+        const progress = wave.userData.life
+        wave.scale.setScalar(0.3 + progress * 5.8)
+        wave.material.opacity = Math.max(0, (1 - progress) * 0.62)
+        if (progress >= 1) wave.userData.life = -1
+      })
+      chamberFx.screen.material.map.offset.x = Math.sin(elapsed * 0.42) * 0.003
       digitalFx.nodes.material.emissiveIntensity = 0.8 + midLevel * 3.4
       digitalFx.portals.forEach((portal, index) => {
         portal.material.opacity = 0.11 + pulse * (0.22 + index * 0.04)
@@ -671,9 +760,12 @@ const SpatialScene = forwardRef(function SpatialScene({ onReady }, ref) {
       digitalFx.horizon.material.opacity = 0.2 + highLevel * 0.8
       if (bloomPass) bloomPass.strength = 0.09 + pulse * 0.16
       if (rgbPass) {
-        rgbPass.uniforms.amount.value = 0.00014 + pulse * 0.00062
+        rgbPass.uniforms.amount.value = 0.00012 + pulse * 0.00042 + kickEnergy * 0.00032
         rgbPass.uniforms.angle.value = elapsed * 0.12
       }
+      const baseFov = isMobile ? 50 : 42
+      camera.fov += ((baseFov + kickEnergy * 1.35) - camera.fov) * 0.18
+      camera.updateProjectionMatrix()
       atmosphere.material.size = 0.016 + pulse * 0.026 + highLevel * 0.018
       atmosphere.rotation.y = elapsed * 0.008
       if (cameraMoving) {
