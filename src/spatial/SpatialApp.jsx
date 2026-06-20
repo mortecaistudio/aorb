@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ArrowLeft, Box, Expand, Eye, Image, Pause, Play, Rotate3D, Volume2, VolumeX } from 'lucide-react'
+import { ArrowLeft, Box, Expand, Eye, Image, Pause, Play, Rotate3D, SkipForward, Volume2, VolumeX } from 'lucide-react'
 import SpatialScene from './SpatialScene.jsx'
 
 const views = [
@@ -36,7 +36,7 @@ export default function SpatialApp() {
   useEffect(() => {
     const audio = audioRef.current
     if (!audio) return undefined
-    audio.volume = 0.68
+    audio.volume = 0.84
 
     const syncPlaying = () => setAudioPlaying(!audio.paused)
     const tryStart = async () => {
@@ -139,11 +139,27 @@ export default function SpatialApp() {
         <div className="header-actions">
           <button className={audioPlaying ? 'audio-toggle audio-toggle--playing' : 'audio-toggle'} type="button" onClick={toggleAudio} aria-label={audioPlaying ? `Pause ${currentTrack.title}` : `Play ${currentTrack.title}`} aria-pressed={audioPlaying} title={currentTrack.title}>
             {audioPlaying ? <Volume2 size={17} /> : <VolumeX size={17} />}
-            <span>{audioPlaying ? `Pause · ${currentTrack.title}` : `Start · ${currentTrack.title}`}</span>
+            <span>{audioPlaying ? 'Sound on' : 'Start sound'}</span>
           </button>
           <a className="back-link" href="/"><ArrowLeft size={17} /> Back to site</a>
         </div>
       </header>
+
+      <section className={audioPlaying ? 'now-playing now-playing--active' : 'now-playing'} aria-label="AORB techno player">
+        <button className="now-playing__play" type="button" onClick={toggleAudio} aria-label={audioPlaying ? 'Pause music' : 'Play music'}>
+          {audioPlaying ? <Pause size={18} /> : <Play size={18} />}
+        </button>
+        <div className="now-playing__meta">
+          <span>Transmission {String(trackIndex + 1).padStart(2, '0')} / {String(tracks.length).padStart(2, '0')}</span>
+          <strong>{currentTrack.title}</strong>
+        </div>
+        <div className="now-playing__spectrum" aria-hidden="true">
+          {[0, 1, 2, 3, 4, 5, 6, 7, 8].map((bar) => <i key={bar} style={{ '--bar': bar }} />)}
+        </div>
+        <button className="now-playing__next" type="button" onClick={playNextTrack} aria-label="Play next track">
+          <SkipForward size={17} />
+        </button>
+      </section>
 
       <div className="mode-switch" aria-label="Presentation mode">
         <button type="button" className={cinematic ? 'active' : ''} onClick={() => chooseMode(true)}><Image size={16} /> Cinematic</button>

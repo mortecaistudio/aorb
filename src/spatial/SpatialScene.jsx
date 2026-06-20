@@ -190,6 +190,50 @@ function addTechnoRig(scene) {
   return { rig, beams, pulseRings, equalizerBars, ceilingRings, scannerRing, starHalo }
 }
 
+function addDigitalArchitecture(scene) {
+  const architecture = new THREE.Group()
+  const nodes = new THREE.InstancedMesh(
+    new THREE.BoxGeometry(0.23, 0.055, 0.025),
+    new THREE.MeshStandardMaterial({ color: 0x80e9ff, emissive: CYAN, emissiveIntensity: 1.4, roughness: 0.32, metalness: 0.62 }),
+    64,
+  )
+  const transform = new THREE.Object3D()
+  for (let index = 0; index < 64; index += 1) {
+    const band = Math.floor(index / 16)
+    const slot = index % 16
+    const angle = -1.2 + (slot / 15) * 2.4
+    const radius = 6.65 + band * 0.22
+    transform.position.set(Math.sin(angle) * radius, 1.15 + band * 0.34, -Math.cos(angle) * radius + 0.6)
+    transform.rotation.set(-0.06, angle, 0)
+    transform.scale.set(0.72 + ((slot + band) % 4) * 0.13, 1, 1)
+    transform.updateMatrix()
+    nodes.setMatrixAt(index, transform.matrix)
+    nodes.setColorAt(index, new THREE.Color((index + band) % 5 === 0 ? VIOLET : CYAN))
+  }
+  nodes.instanceMatrix.needsUpdate = true
+  if (nodes.instanceColor) nodes.instanceColor.needsUpdate = true
+  nodes.castShadow = false
+  architecture.add(nodes)
+
+  const portalMaterial = new THREE.MeshBasicMaterial({ color: VIOLET, transparent: true, opacity: 0.3, blending: THREE.AdditiveBlending, depthWrite: false })
+  const portals = []
+  ;[3.15, 3.65, 4.15].forEach((radius, index) => {
+    const portal = mesh(new THREE.TorusGeometry(radius, 0.018 + index * 0.007, 6, 128, Math.PI), portalMaterial.clone(), [0, 0.15, -6.16])
+    portal.rotation.z = Math.PI / 2
+    portals.push(portal)
+    architecture.add(portal)
+  })
+
+  const horizon = mesh(
+    new THREE.PlaneGeometry(11, 0.035),
+    new THREE.MeshBasicMaterial({ color: CYAN, transparent: true, opacity: 0.34, blending: THREE.AdditiveBlending, depthWrite: false }),
+    [0, 2.75, -6.28],
+  )
+  architecture.add(horizon)
+  scene.add(architecture)
+  return { architecture, nodes, portals, horizon }
+}
+
 function cylinderBetween(start, end, radius, surface, segments = 18) {
   const from = new THREE.Vector3(...start)
   const to = new THREE.Vector3(...end)
@@ -276,6 +320,10 @@ function createRebel() {
   group.rotation.y = 0.34
   group.userData.label = 'AORB rebel'
   group.userData.danceParts = {
+    torso,
+    shoulders,
+    upperLeft,
+    upperRight,
     leftHand,
     rightHand,
     lowerLeft,
@@ -284,6 +332,9 @@ function createRebel() {
     rightHandBase: rightHand.position.clone(),
     lowerLeftBase: lowerLeft.quaternion.clone(),
     lowerRightBase: lowerRight.quaternion.clone(),
+    upperLeftBase: upperLeft.quaternion.clone(),
+    upperRightBase: upperRight.quaternion.clone(),
+    shouldersBase: shoulders.quaternion.clone(),
   }
   return group
 }
@@ -345,6 +396,10 @@ function createUrsula() {
   group.rotation.y = -0.34
   group.userData.label = 'European Commission president'
   group.userData.danceParts = {
+    torso,
+    shoulders,
+    upperLeft,
+    upperRight,
     leftHand,
     rightHand,
     lowerLeft,
@@ -353,6 +408,9 @@ function createUrsula() {
     rightHandBase: rightHand.position.clone(),
     lowerLeftBase: lowerLeft.quaternion.clone(),
     lowerRightBase: lowerRight.quaternion.clone(),
+    upperLeftBase: upperLeft.quaternion.clone(),
+    upperRightBase: upperRight.quaternion.clone(),
+    shouldersBase: shoulders.quaternion.clone(),
   }
   return group
 }
@@ -416,14 +474,14 @@ const SpatialScene = forwardRef(function SpatialScene({ onReady }, ref) {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, window.innerWidth < 700 ? 1.22 : 1.55))
     renderer.outputColorSpace = THREE.SRGBColorSpace
     renderer.toneMapping = THREE.ACESFilmicToneMapping
-    renderer.toneMappingExposure = 1.06
+    renderer.toneMappingExposure = 0.88
     renderer.shadowMap.enabled = true
     renderer.shadowMap.type = THREE.PCFShadowMap
     mount.appendChild(renderer.domElement)
 
     const useBloom = mount.clientWidth >= 900 && !reduceMotion
     const composer = useBloom ? new EffectComposer(renderer) : null
-    const bloomPass = useBloom ? new UnrealBloomPass(new THREE.Vector2(mount.clientWidth, mount.clientHeight), 0.18, 0.2, 0.94) : null
+    const bloomPass = useBloom ? new UnrealBloomPass(new THREE.Vector2(mount.clientWidth, mount.clientHeight), 0.12, 0.24, 1.02) : null
     const rgbPass = useBloom ? new ShaderPass(RGBShiftShader) : null
     const vignettePass = useBloom ? new ShaderPass(VignetteShader) : null
     if (composer && bloomPass) {
@@ -446,22 +504,23 @@ const SpatialScene = forwardRef(function SpatialScene({ onReady }, ref) {
     controls.maxPolarAngle = Math.PI * 0.89
     controls.autoRotateSpeed = 0.85
 
-    scene.add(new THREE.HemisphereLight(0x8bbcff, 0x160d22, 2.1))
-    const key = new THREE.SpotLight(0xffffff, 108, 18, Math.PI / 5, 0.55, 1.5)
+    scene.add(new THREE.HemisphereLight(0x8bbcff, 0x160d22, 1.25))
+    const key = new THREE.SpotLight(0xfff4ea, 62, 18, Math.PI / 5, 0.62, 1.5)
     key.position.set(0, 8, 5)
     key.castShadow = true
     key.shadow.mapSize.set(isMobile ? 512 : 1024, isMobile ? 512 : 1024)
     scene.add(key)
-    const violet = new THREE.PointLight(VIOLET, 75, 12, 1.5)
+    const violet = new THREE.PointLight(VIOLET, 38, 12, 1.5)
     violet.position.set(-5, 3, 2)
-    const cyan = new THREE.PointLight(CYAN, 65, 10, 1.4)
+    const cyan = new THREE.PointLight(CYAN, 32, 10, 1.4)
     cyan.position.set(5, 3, 1)
-    const red = new THREE.PointLight(RED, 40, 8, 1.6)
+    const red = new THREE.PointLight(RED, 22, 8, 1.6)
     red.position.set(0, 4, -5)
     scene.add(violet, cyan, red)
 
     const chamberFx = addChamber(scene)
     const technoFx = addTechnoRig(scene)
+    const digitalFx = addDigitalArchitecture(scene)
     const rebel = createRebel()
     const ursula = createUrsula()
     scene.add(rebel, ursula)
@@ -554,6 +613,12 @@ const SpatialScene = forwardRef(function SpatialScene({ onReady }, ref) {
       rebelParts.lowerLeft.quaternion.copy(rebelParts.lowerLeftBase).multiply(danceTwist)
       danceTwist.setFromAxisAngle(danceAxis, -rebelSway * dance * 0.12)
       rebelParts.lowerRight.quaternion.copy(rebelParts.lowerRightBase).multiply(danceTwist)
+      danceTwist.setFromAxisAngle(danceAxis, -rebelBeat * dance * 0.09)
+      rebelParts.upperLeft.quaternion.copy(rebelParts.upperLeftBase).multiply(danceTwist)
+      danceTwist.setFromAxisAngle(danceAxis, rebelBeat * dance * 0.09)
+      rebelParts.upperRight.quaternion.copy(rebelParts.upperRightBase).multiply(danceTwist)
+      rebelParts.shoulders.rotation.x = Math.sin(elapsed * 3.1) * dance * 0.025
+      rebelParts.torso.scale.y = 1 + Math.max(0, rebelBeat) * dance * 0.018
 
       const ursulaBeat = Math.sin(elapsed * (2.6 + dance * 1.15) + 1.1)
       const ursulaSway = Math.sin(elapsed * 1.45 + 0.7)
@@ -563,9 +628,14 @@ const SpatialScene = forwardRef(function SpatialScene({ onReady }, ref) {
       const ursulaParts = ursula.userData.danceParts
       ursulaParts.leftHand.position.y = ursulaParts.leftHandBase.y + Math.max(0, ursulaBeat) * dance * 0.035
       ursulaParts.rightHand.position.y = ursulaParts.rightHandBase.y + Math.max(0, -ursulaBeat) * dance * 0.035
-      violet.intensity = 58 + pulse * 145 + Math.sin(elapsed * 1.5) * 4
-      cyan.intensity = 52 + pulse * 125 + Math.cos(elapsed * 1.15) * 4
-      red.intensity = 28 + pulse * 78
+      danceTwist.setFromAxisAngle(danceAxis, -ursulaSway * dance * 0.045)
+      ursulaParts.upperLeft.quaternion.copy(ursulaParts.upperLeftBase).multiply(danceTwist)
+      danceTwist.setFromAxisAngle(danceAxis, ursulaSway * dance * 0.045)
+      ursulaParts.upperRight.quaternion.copy(ursulaParts.upperRightBase).multiply(danceTwist)
+      ursulaParts.shoulders.rotation.x = Math.sin(elapsed * 2.2 + 0.8) * dance * 0.014
+      violet.intensity = 30 + pulse * 76 + Math.sin(elapsed * 1.5) * 2
+      cyan.intensity = 27 + pulse * 68 + Math.cos(elapsed * 1.15) * 2
+      red.intensity = 17 + pulse * 42
       chamberFx.ring.material.emissiveIntensity = 1.5 + pulse * 6
       chamberFx.dais.scale.y = 1 + pulse * 0.08
       technoFx.rig.rotation.y = elapsed * 0.025
@@ -593,7 +663,13 @@ const SpatialScene = forwardRef(function SpatialScene({ onReady }, ref) {
       technoFx.scannerRing.material.opacity = 0.035 + pulse * 0.16
       technoFx.starHalo.rotation.z = elapsed * (0.08 + midLevel * 0.18)
       technoFx.starHalo.scale.setScalar(1 + pulse * 0.09)
-      if (bloomPass) bloomPass.strength = 0.13 + pulse * 0.24
+      digitalFx.nodes.material.emissiveIntensity = 0.8 + midLevel * 3.4
+      digitalFx.portals.forEach((portal, index) => {
+        portal.material.opacity = 0.11 + pulse * (0.22 + index * 0.04)
+        portal.scale.setScalar(1 + Math.sin(elapsed * 0.65 + index) * 0.004)
+      })
+      digitalFx.horizon.material.opacity = 0.2 + highLevel * 0.8
+      if (bloomPass) bloomPass.strength = 0.09 + pulse * 0.16
       if (rgbPass) {
         rgbPass.uniforms.amount.value = 0.00014 + pulse * 0.00062
         rgbPass.uniforms.angle.value = elapsed * 0.12
