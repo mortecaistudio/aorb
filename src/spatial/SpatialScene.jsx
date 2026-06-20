@@ -13,9 +13,55 @@ const VIOLET = 0x7c3aed
 const CYAN = 0x00d9ff
 const RED = 0xff315b
 const GOLD = 0xffd700
+const textureCache = new Map()
+
+function createMicroTexture(key, base = 132, contrast = 18) {
+  if (textureCache.has(key)) return textureCache.get(key)
+  const canvas = document.createElement('canvas')
+  canvas.width = 128
+  canvas.height = 128
+  const ctx = canvas.getContext('2d')
+  const image = ctx.createImageData(canvas.width, canvas.height)
+  for (let index = 0; index < image.data.length; index += 4) {
+    const grain = base + (Math.random() - 0.5) * contrast
+    image.data[index] = grain
+    image.data[index + 1] = grain
+    image.data[index + 2] = grain
+    image.data[index + 3] = 255
+  }
+  ctx.putImageData(image, 0, 0)
+  const texture = new THREE.CanvasTexture(canvas)
+  texture.wrapS = THREE.RepeatWrapping
+  texture.wrapT = THREE.RepeatWrapping
+  texture.repeat.set(3, 3)
+  textureCache.set(key, texture)
+  return texture
+}
 
 function material(color, roughness = 0.62, metalness = 0.08) {
   return new THREE.MeshStandardMaterial({ color, roughness, metalness })
+}
+
+function skinMaterial(color) {
+  return new THREE.MeshStandardMaterial({
+    color,
+    roughness: 0.66,
+    metalness: 0,
+    bumpMap: createMicroTexture('skin', 132, 22),
+    bumpScale: 0.007,
+  })
+}
+
+function fabricMaterial(color, roughness = 0.7) {
+  const surface = new THREE.MeshStandardMaterial({
+    color,
+    roughness,
+    metalness: 0.08,
+    bumpMap: createMicroTexture('fabric', 122, 34),
+    bumpScale: 0.014,
+  })
+  surface.bumpMap.repeat.set(7, 7)
+  return surface
 }
 
 function mesh(geometry, surface, position = [0, 0, 0]) {
@@ -298,27 +344,43 @@ function cylinderBetween(start, end, radius, surface, segments = 18) {
 }
 
 function addEye(parent, x, y, z) {
-  const white = mesh(new THREE.SphereGeometry(0.036, 18, 12), material(0xf5f3ea, 0.52), [x, y, z])
-  white.scale.set(1.18, 0.58, 0.36)
-  const pupil = mesh(new THREE.SphereGeometry(0.012, 12, 8), material(0x17202b, 0.3), [x, y, z + 0.031])
-  parent.add(white, pupil)
+  const white = mesh(new THREE.SphereGeometry(0.034, 22, 14), material(0xeeeae2, 0.48), [x, y, z])
+  white.scale.set(1.16, 0.52, 0.34)
+  const iris = mesh(new THREE.SphereGeometry(0.014, 16, 10), material(0x70899a, 0.34), [x, y, z + 0.029])
+  const pupil = mesh(new THREE.SphereGeometry(0.0065, 12, 8), material(0x080b0d, 0.24), [x, y, z + 0.04])
+  const glint = mesh(new THREE.SphereGeometry(0.0024, 8, 6), material(0xffffff, 0.1), [x - 0.004, y + 0.005, z + 0.046])
+  parent.add(white, iris, pupil, glint)
 }
 
-function addFaceDetails(group, skin, y) {
+function addFaceDetails(group, skin, y, options = {}) {
   const leftEar = mesh(new THREE.SphereGeometry(0.07, 18, 12), skin, [-0.31, y + 0.02, 0.05])
   const rightEar = mesh(new THREE.SphereGeometry(0.07, 18, 12), skin, [0.31, y + 0.02, 0.05])
   leftEar.scale.set(0.55, 1, 0.45)
   rightEar.scale.copy(leftEar.scale)
-  const mouth = mesh(new THREE.BoxGeometry(0.13, 0.015, 0.015), material(0x6d3032, 0.8), [0, y - 0.16, 0.36])
-  group.add(leftEar, rightEar, mouth)
+  const mouth = mesh(new THREE.CapsuleGeometry(0.008, 0.105, 3, 12), material(options.lipColor || 0x713a3d, 0.68), [0, y - 0.16, 0.36])
+  mouth.rotation.z = Math.PI / 2
+  const chin = mesh(new THREE.SphereGeometry(0.085, 22, 14), skin, [0, y - 0.235, 0.285])
+  chin.scale.set(1.18, 0.48, 0.48)
+  const cheekLeft = mesh(new THREE.SphereGeometry(0.085, 20, 12), skin, [-0.19, y - 0.045, 0.29])
+  const cheekRight = mesh(new THREE.SphereGeometry(0.085, 20, 12), skin, [0.19, y - 0.045, 0.29])
+  cheekLeft.scale.set(1.1, 0.68, 0.38)
+  cheekRight.scale.copy(cheekLeft.scale)
+  group.add(leftEar, rightEar, mouth, chin, cheekLeft, cheekRight)
+  if (options.brows) {
+    ;[-0.105, 0.105].forEach((x, index) => {
+      const brow = mesh(new THREE.CapsuleGeometry(0.007, 0.075, 3, 10), material(options.browColor || 0x7b6445, 0.8), [x, y + 0.115, 0.355])
+      brow.rotation.z = Math.PI / 2 + (index ? -0.1 : 0.1)
+      group.add(brow)
+    })
+  }
 }
 
 function createRebel() {
   const group = new THREE.Group()
-  const purple = material(0x35135f, 0.67, 0.12)
-  const purpleDark = material(0x160d25, 0.52, 0.28)
+  const purple = fabricMaterial(0x35135f, 0.64)
+  const purpleDark = fabricMaterial(0x160d25, 0.52)
   const black = material(0x07090d, 0.3, 0.62)
-  const skin = material(0xb97d60, 0.72)
+  const skin = skinMaterial(0xb97d60)
   const glow = new THREE.MeshStandardMaterial({ color: CYAN, emissive: CYAN, emissiveIntensity: 3.2, roughness: 0.25 })
 
   const torso = mesh(new THREE.CylinderGeometry(0.42, 0.5, 1.18, 32), purple, [0, 1.55, 0])
@@ -330,6 +392,12 @@ function createRebel() {
   const yoke = mesh(new THREE.BoxGeometry(1.02, 0.3, 0.5), purpleDark, [0, 2.03, 0.04])
   yoke.rotation.x = -0.08
   group.add(torso, shoulders, neck, yoke)
+
+  const shoulderPanelLeft = mesh(new THREE.BoxGeometry(0.42, 0.055, 0.48), purpleDark, [-0.39, 2.08, 0.02])
+  const shoulderPanelRight = mesh(new THREE.BoxGeometry(0.42, 0.055, 0.48), purpleDark, [0.39, 2.08, 0.02])
+  shoulderPanelLeft.rotation.z = -0.08
+  shoulderPanelRight.rotation.z = 0.08
+  group.add(shoulderPanelLeft, shoulderPanelRight)
 
   const head = mesh(new THREE.SphereGeometry(0.34, 48, 32), skin, [0, 2.62, 0.08])
   head.scale.set(0.86, 1.08, 0.9)
@@ -394,9 +462,9 @@ function createRebel() {
 
 function createUrsula() {
   const group = new THREE.Group()
-  const cream = material(0xd7cec1, 0.82, 0.02)
-  const creamDark = material(0xbeb3a5, 0.84, 0.02)
-  const skin = material(0xd2a085, 0.76)
+  const cream = fabricMaterial(0xd7cec1, 0.78)
+  const creamDark = fabricMaterial(0xbeb3a5, 0.8)
+  const skin = skinMaterial(0xd2a085)
   const hair = material(0xc6a56f, 0.76, 0.02)
   const dark = material(0x171b21, 0.7)
 
@@ -421,7 +489,7 @@ function createUrsula() {
   group.add(head, jaw, nose)
   addEye(group, -0.1, 2.57, 0.37)
   addEye(group, 0.1, 2.57, 0.37)
-  addFaceDetails(group, skin, 2.49)
+  addFaceDetails(group, skin, 2.49, { brows: true, browColor: 0x806b4c, lipColor: 0x945e61 })
 
   const hairCap = mesh(new THREE.SphereGeometry(0.35, 34, 22, 0, Math.PI * 2, 0, Math.PI * 0.6), hair, [0, 2.66, 0.01])
   hairCap.scale.set(1.08, 0.88, 1.04)
@@ -813,6 +881,7 @@ const SpatialScene = forwardRef(function SpatialScene({ onReady }, ref) {
       renderer.dispose()
       composer?.dispose()
       renderer.domElement.remove()
+      textureCache.clear()
       apiRef.current = null
     }
   }, [onReady])
