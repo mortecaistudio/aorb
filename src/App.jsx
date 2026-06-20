@@ -36,14 +36,39 @@ function Logo() {
 function Header() {
   const [open, setOpen] = useState(false)
   const links = [['Manifesto', '#manifesto'], ['Commitments', '#commitments'], ['Method', '#method'], ['Contact', '#contact']]
+
+  useEffect(() => {
+    document.body.classList.toggle('menu-open', open)
+    const closeOnEscape = (event) => event.key === 'Escape' && setOpen(false)
+    window.addEventListener('keydown', closeOnEscape)
+    return () => {
+      document.body.classList.remove('menu-open')
+      window.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [open])
+
   return (
     <header className="header">
       <Logo />
-      <button className="menu-button" type="button" aria-label="Toggle navigation" aria-expanded={open} onClick={() => setOpen(v => !v)}>
+      <button className="menu-button" type="button" aria-label={open ? 'Close navigation' : 'Open navigation'} aria-expanded={open} aria-controls="primary-navigation" onClick={() => setOpen(v => !v)}>
         {open ? <X /> : <Menu />}
       </button>
-      <nav className={open ? 'nav nav--open' : 'nav'} aria-label="Primary navigation">
-        {links.map(([label, href]) => <a key={href} href={href} onClick={() => setOpen(false)}>{label}</a>)}
+      <nav id="primary-navigation" className={open ? 'nav nav--open' : 'nav'} aria-label="Primary navigation">
+        <div className="nav__identity">
+          <span>AORB</span>
+          <p>Alliance of Rebels Europe</p>
+        </div>
+        <div className="nav__links">
+          {links.map(([label, href], index) => (
+            <a key={href} href={href} onClick={() => setOpen(false)}>
+              <span>{String(index + 1).padStart(2, '0')}</span>{label}<ArrowRight aria-hidden="true" />
+            </a>
+          ))}
+        </div>
+        <div className="nav__footer">
+          <p>Europe's next political generation.</p>
+          <a href="/AORB_Brand_Identity_and_Manifesto.pdf" download onClick={() => setOpen(false)}>Founding document <ExternalLink aria-hidden="true" /></a>
+        </div>
       </nav>
     </header>
   )
@@ -55,12 +80,19 @@ function Hero() {
       <Header />
       <div className="hero__image" aria-hidden="true" />
       <div className="hero__content">
+        <div className="hero__identity">
+          <span>AORB / Europe</span>
+          <strong>Alliance of Rebels Europe</strong>
+        </div>
         <h1>Europe<br />must<br />evolve<span>.</span></h1>
-        <p>Rebellion is not destruction. It is the courage to reject what no longer works — and the discipline to construct something better.</p>
+        <p>A new European political movement for the generation that will inherit what comes next. Rebellion is the discipline to reject what no longer works — and construct something better.</p>
         <div className="actions">
           <ArrowLink href="#manifesto">Read the manifesto</ArrowLink>
           <ArrowLink href="#commitments" variant="outline">Explore the 10 commitments</ArrowLink>
         </div>
+      </div>
+      <div className="hero__proof" aria-label="Our political method">
+        <span>Democratic</span><span>Peaceful</span><span>Measurable</span>
       </div>
       <a className="scroll-cue" href="#manifesto" aria-label="Scroll to manifesto"><ArrowDown /></a>
       <div className="signal-line" aria-hidden="true"><span /><span /><span /></div>
@@ -80,7 +112,7 @@ function Manifesto() {
         <blockquote>We are not rebelling against Europe. We are rebelling for the Europe that has not yet been built.</blockquote>
       </div>
       <figure className="manifesto__media">
-        <img src="/assets/manifesto-plaza.png" alt="Historic and contemporary European civic buildings facing a violet light monument across a rain-soaked plaza" />
+        <img src="/assets/manifesto-plaza.webp" width="1536" height="1024" loading="lazy" decoding="async" alt="Historic and contemporary European civic buildings facing a violet light monument across a rain-soaked plaza" />
       </figure>
     </section>
   )
@@ -94,6 +126,7 @@ function Commitments() {
       <div className="commitments__heading">
         <span>02 / Direction</span>
         <h2>Ten commitments<span>.</span></h2>
+        <p>A political contract for the generation inheriting Europe — designed to be understood, measured and improved in public.</p>
       </div>
       <div className="commitment-list">
         {commitments.map(([title, body], index) => (
