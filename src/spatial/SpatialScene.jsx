@@ -174,8 +174,20 @@ function addTechnoRig(scene) {
   scannerRing.rotation.x = Math.PI / 2
   rig.add(scannerRing)
 
+  const starHalo = new THREE.Group()
+  const starMaterial = new THREE.MeshStandardMaterial({ color: GOLD, emissive: GOLD, emissiveIntensity: 2.4, roughness: 0.3, metalness: 0.45 })
+  for (let index = 0; index < 12; index += 1) {
+    const angle = (index / 12) * Math.PI * 2
+    const star = mesh(new THREE.OctahedronGeometry(0.055, 0), starMaterial, [Math.cos(angle) * 0.54, Math.sin(angle) * 0.54, 0])
+    star.scale.set(0.72, 1.35, 0.28)
+    star.rotation.z = angle
+    starHalo.add(star)
+  }
+  starHalo.position.set(0, 2.12, -5.76)
+  rig.add(starHalo)
+
   scene.add(rig)
-  return { rig, beams, pulseRings, equalizerBars, ceilingRings, scannerRing }
+  return { rig, beams, pulseRings, equalizerBars, ceilingRings, scannerRing, starHalo }
 }
 
 function cylinderBetween(start, end, radius, surface, segments = 18) {
@@ -263,6 +275,16 @@ function createRebel() {
   group.position.set(-1.5, 0, 0.35)
   group.rotation.y = 0.34
   group.userData.label = 'AORB rebel'
+  group.userData.danceParts = {
+    leftHand,
+    rightHand,
+    lowerLeft,
+    lowerRight,
+    leftHandBase: leftHand.position.clone(),
+    rightHandBase: rightHand.position.clone(),
+    lowerLeftBase: lowerLeft.quaternion.clone(),
+    lowerRightBase: lowerRight.quaternion.clone(),
+  }
   return group
 }
 
@@ -322,6 +344,16 @@ function createUrsula() {
   group.position.set(1.5, 0, 0.35)
   group.rotation.y = -0.34
   group.userData.label = 'European Commission president'
+  group.userData.danceParts = {
+    leftHand,
+    rightHand,
+    lowerLeft,
+    lowerRight,
+    leftHandBase: leftHand.position.clone(),
+    rightHandBase: rightHand.position.clone(),
+    lowerLeftBase: lowerLeft.quaternion.clone(),
+    lowerRightBase: lowerRight.quaternion.clone(),
+  }
   return group
 }
 
@@ -365,6 +397,7 @@ const SpatialScene = forwardRef(function SpatialScene({ onReady }, ref) {
     scene.fog = new THREE.FogExp2(0x07101d, 0.036)
 
     const isMobile = mount.clientWidth < 700
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     const resolveView = (name) => {
       const base = cameraViews[name] || cameraViews.free
       const position = base.position.clone()
@@ -380,7 +413,7 @@ const SpatialScene = forwardRef(function SpatialScene({ onReady }, ref) {
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' })
     renderer.setSize(mount.clientWidth, mount.clientHeight)
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, window.innerWidth < 700 ? 1.4 : 1.8))
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, window.innerWidth < 700 ? 1.22 : 1.55))
     renderer.outputColorSpace = THREE.SRGBColorSpace
     renderer.toneMapping = THREE.ACESFilmicToneMapping
     renderer.toneMappingExposure = 1.06
@@ -388,7 +421,7 @@ const SpatialScene = forwardRef(function SpatialScene({ onReady }, ref) {
     renderer.shadowMap.type = THREE.PCFShadowMap
     mount.appendChild(renderer.domElement)
 
-    const useBloom = mount.clientWidth >= 700
+    const useBloom = mount.clientWidth >= 900 && !reduceMotion
     const composer = useBloom ? new EffectComposer(renderer) : null
     const bloomPass = useBloom ? new UnrealBloomPass(new THREE.Vector2(mount.clientWidth, mount.clientHeight), 0.18, 0.2, 0.94) : null
     const rgbPass = useBloom ? new ShaderPass(RGBShiftShader) : null
@@ -417,7 +450,7 @@ const SpatialScene = forwardRef(function SpatialScene({ onReady }, ref) {
     const key = new THREE.SpotLight(0xffffff, 108, 18, Math.PI / 5, 0.55, 1.5)
     key.position.set(0, 8, 5)
     key.castShadow = true
-    key.shadow.mapSize.set(1024, 1024)
+    key.shadow.mapSize.set(isMobile ? 512 : 1024, isMobile ? 512 : 1024)
     scene.add(key)
     const violet = new THREE.PointLight(VIOLET, 75, 12, 1.5)
     violet.position.set(-5, 3, 2)
@@ -429,7 +462,9 @@ const SpatialScene = forwardRef(function SpatialScene({ onReady }, ref) {
 
     const chamberFx = addChamber(scene)
     const technoFx = addTechnoRig(scene)
-    scene.add(createRebel(), createUrsula())
+    const rebel = createRebel()
+    const ursula = createUrsula()
+    scene.add(rebel, ursula)
     const atmosphere = addAtmosphere(scene)
 
     let animationFrame
@@ -441,6 +476,13 @@ const SpatialScene = forwardRef(function SpatialScene({ onReady }, ref) {
     let mediaSource
     let audioData
     let bassLevel = 0
+    let midLevel = 0
+    let highLevel = 0
+    let pageVisible = !document.hidden
+    const rebelBase = { y: rebel.position.y, rotationY: rebel.rotation.y }
+    const ursulaBase = { y: ursula.position.y, rotationY: ursula.rotation.y }
+    const danceAxis = new THREE.Vector3(0, 0, 1)
+    const danceTwist = new THREE.Quaternion()
 
     const goTo = (name) => {
       const next = resolveView(name)
@@ -478,15 +520,49 @@ const SpatialScene = forwardRef(function SpatialScene({ onReady }, ref) {
     const animate = () => {
       timer.update()
       const elapsed = timer.getElapsed()
+      if (!pageVisible) {
+        animationFrame = requestAnimationFrame(animate)
+        return
+      }
       if (analyser && audioData) {
         analyser.getByteFrequencyData(audioData)
         let bass = 0
+        let mids = 0
+        let highs = 0
         for (let index = 0; index < 12; index += 1) bass += audioData[index]
+        for (let index = 12; index < 34; index += 1) mids += audioData[index]
+        for (let index = 34; index < audioData.length; index += 1) highs += audioData[index]
         bassLevel += ((bass / (12 * 255)) - bassLevel) * 0.24
+        midLevel += ((mids / (22 * 255)) - midLevel) * 0.2
+        highLevel += ((highs / ((audioData.length - 34) * 255)) - highLevel) * 0.16
       } else {
         bassLevel += (0.08 - bassLevel) * 0.03
+        midLevel += (0.05 - midLevel) * 0.03
+        highLevel += (0.025 - highLevel) * 0.03
       }
       const pulse = Math.max(0.04, bassLevel)
+      const dance = reduceMotion ? 0 : Math.min(1, bassLevel * 0.82 + midLevel * 0.48)
+      const rebelBeat = Math.sin(elapsed * (3.35 + dance * 1.8))
+      const rebelSway = Math.sin(elapsed * 1.9)
+      rebel.position.y = rebelBase.y + Math.abs(rebelBeat) * (0.018 + dance * 0.075)
+      rebel.rotation.y = rebelBase.rotationY + rebelSway * dance * 0.045
+      rebel.rotation.z = rebelSway * dance * 0.07
+      const rebelParts = rebel.userData.danceParts
+      rebelParts.leftHand.position.y = rebelParts.leftHandBase.y + Math.max(0, rebelBeat) * dance * 0.075
+      rebelParts.rightHand.position.y = rebelParts.rightHandBase.y + Math.max(0, -rebelBeat) * dance * 0.075
+      danceTwist.setFromAxisAngle(danceAxis, rebelSway * dance * 0.12)
+      rebelParts.lowerLeft.quaternion.copy(rebelParts.lowerLeftBase).multiply(danceTwist)
+      danceTwist.setFromAxisAngle(danceAxis, -rebelSway * dance * 0.12)
+      rebelParts.lowerRight.quaternion.copy(rebelParts.lowerRightBase).multiply(danceTwist)
+
+      const ursulaBeat = Math.sin(elapsed * (2.6 + dance * 1.15) + 1.1)
+      const ursulaSway = Math.sin(elapsed * 1.45 + 0.7)
+      ursula.position.y = ursulaBase.y + Math.abs(ursulaBeat) * dance * 0.032
+      ursula.rotation.y = ursulaBase.rotationY - ursulaSway * dance * 0.024
+      ursula.rotation.z = -ursulaSway * dance * 0.035
+      const ursulaParts = ursula.userData.danceParts
+      ursulaParts.leftHand.position.y = ursulaParts.leftHandBase.y + Math.max(0, ursulaBeat) * dance * 0.035
+      ursulaParts.rightHand.position.y = ursulaParts.rightHandBase.y + Math.max(0, -ursulaBeat) * dance * 0.035
       violet.intensity = 58 + pulse * 145 + Math.sin(elapsed * 1.5) * 4
       cyan.intensity = 52 + pulse * 125 + Math.cos(elapsed * 1.15) * 4
       red.intensity = 28 + pulse * 78
@@ -515,12 +591,14 @@ const SpatialScene = forwardRef(function SpatialScene({ onReady }, ref) {
       })
       technoFx.scannerRing.position.y = 0.25 + ((elapsed * 0.38) % 1) * 3.4
       technoFx.scannerRing.material.opacity = 0.035 + pulse * 0.16
+      technoFx.starHalo.rotation.z = elapsed * (0.08 + midLevel * 0.18)
+      technoFx.starHalo.scale.setScalar(1 + pulse * 0.09)
       if (bloomPass) bloomPass.strength = 0.13 + pulse * 0.24
       if (rgbPass) {
         rgbPass.uniforms.amount.value = 0.00014 + pulse * 0.00062
         rgbPass.uniforms.angle.value = elapsed * 0.12
       }
-      atmosphere.material.size = 0.016 + pulse * 0.026
+      atmosphere.material.size = 0.016 + pulse * 0.026 + highLevel * 0.018
       atmosphere.rotation.y = elapsed * 0.008
       if (cameraMoving) {
         camera.position.lerp(desiredPosition, 0.055)
@@ -542,12 +620,15 @@ const SpatialScene = forwardRef(function SpatialScene({ onReady }, ref) {
       composer?.setSize(clientWidth, clientHeight)
     }
     window.addEventListener('resize', resize)
+    const updateVisibility = () => { pageVisible = !document.hidden }
+    document.addEventListener('visibilitychange', updateVisibility)
     const readyFrame = requestAnimationFrame(() => onReady?.())
 
     return () => {
       cancelAnimationFrame(animationFrame)
       cancelAnimationFrame(readyFrame)
       window.removeEventListener('resize', resize)
+      document.removeEventListener('visibilitychange', updateVisibility)
       controls.dispose()
       timer.dispose()
       if (mediaSource) mediaSource.disconnect()
