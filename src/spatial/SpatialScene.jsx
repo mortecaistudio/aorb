@@ -269,7 +269,7 @@ const SpatialScene = forwardRef(function SpatialScene({ onReady }, ref) {
     renderer.toneMapping = THREE.ACESFilmicToneMapping
     renderer.toneMappingExposure = 1.06
     renderer.shadowMap.enabled = true
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap
+    renderer.shadowMap.type = THREE.PCFShadowMap
     mount.appendChild(renderer.domElement)
 
     const controls = new OrbitControls(camera, renderer.domElement)
@@ -313,9 +313,11 @@ const SpatialScene = forwardRef(function SpatialScene({ onReady }, ref) {
     const setAutoRotate = (value) => { controls.autoRotate = value }
     apiRef.current = { goTo, setAutoRotate }
 
-    const clock = new THREE.Clock()
+    const timer = new THREE.Timer()
+    timer.connect(document)
     const animate = () => {
-      const elapsed = clock.getElapsedTime()
+      timer.update()
+      const elapsed = timer.getElapsed()
       violet.intensity = 70 + Math.sin(elapsed * 1.5) * 7
       cyan.intensity = 62 + Math.cos(elapsed * 1.15) * 6
       if (cameraMoving) {
@@ -343,6 +345,7 @@ const SpatialScene = forwardRef(function SpatialScene({ onReady }, ref) {
       cancelAnimationFrame(readyFrame)
       window.removeEventListener('resize', resize)
       controls.dispose()
+      timer.dispose()
       scene.traverse((item) => {
         item.geometry?.dispose()
         const materials = Array.isArray(item.material) ? item.material : [item.material]
