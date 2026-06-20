@@ -36,7 +36,7 @@ export default function SpatialApp() {
   useEffect(() => {
     const audio = audioRef.current
     if (!audio) return undefined
-    audio.volume = 0.34
+    audio.volume = 0.68
 
     const syncPlaying = () => setAudioPlaying(!audio.paused)
     const tryStart = async () => {

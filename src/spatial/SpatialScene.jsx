@@ -1,6 +1,10 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js'
+import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js'
 
 const VIOLET = 0x7c3aed
 const CYAN = 0x00d9ff
@@ -111,6 +115,7 @@ function addTechnoRig(scene) {
   const rig = new THREE.Group()
   const beams = []
   const pulseRings = []
+  const equalizerBars = []
   const colors = [VIOLET, CYAN, RED, VIOLET, CYAN, RED]
 
   colors.forEach((color, index) => {
@@ -139,8 +144,18 @@ function addTechnoRig(scene) {
     rig.add(floorRing)
   })
 
+  for (let index = 0; index < 28; index += 1) {
+    const ratio = index / 27
+    const color = new THREE.Color().setHSL(0.52 + ratio * 0.24, 0.9, 0.56)
+    const barMaterial = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 2.1, roughness: 0.24, metalness: 0.32 })
+    const bar = mesh(new THREE.BoxGeometry(0.085, 1, 0.09), barMaterial, [-2.75 + ratio * 5.5, 1.04, -5.82])
+    bar.scale.y = 0.12
+    equalizerBars.push(bar)
+    rig.add(bar)
+  }
+
   scene.add(rig)
-  return { rig, beams, pulseRings }
+  return { rig, beams, pulseRings, equalizerBars }
 }
 
 function cylinderBetween(start, end, radius, surface, segments = 18) {
@@ -353,6 +368,15 @@ const SpatialScene = forwardRef(function SpatialScene({ onReady }, ref) {
     renderer.shadowMap.type = THREE.PCFShadowMap
     mount.appendChild(renderer.domElement)
 
+    const useBloom = mount.clientWidth >= 700
+    const composer = useBloom ? new EffectComposer(renderer) : null
+    const bloomPass = useBloom ? new UnrealBloomPass(new THREE.Vector2(mount.clientWidth, mount.clientHeight), 0.18, 0.2, 0.94) : null
+    if (composer && bloomPass) {
+      composer.addPass(new RenderPass(scene, camera))
+      composer.addPass(bloomPass)
+      composer.addPass(new OutputPass())
+    }
+
     const controls = new OrbitControls(camera, renderer.domElement)
     controls.target.copy(initialView.target)
     controls.enableDamping = true
@@ -363,7 +387,7 @@ const SpatialScene = forwardRef(function SpatialScene({ onReady }, ref) {
     controls.autoRotateSpeed = 0.85
 
     scene.add(new THREE.HemisphereLight(0x8bbcff, 0x160d22, 2.1))
-    const key = new THREE.SpotLight(0xffffff, 130, 18, Math.PI / 5, 0.55, 1.5)
+    const key = new THREE.SpotLight(0xffffff, 108, 18, Math.PI / 5, 0.55, 1.5)
     key.position.set(0, 8, 5)
     key.castShadow = true
     key.shadow.mapSize.set(1024, 1024)
@@ -451,6 +475,14 @@ const SpatialScene = forwardRef(function SpatialScene({ onReady }, ref) {
         floorRing.scale.setScalar(scale)
         floorRing.material.opacity = 0.11 + pulse * 0.5
       })
+      technoFx.equalizerBars.forEach((bar, index) => {
+        const spectrumValue = audioData ? audioData[Math.min(audioData.length - 1, 2 + index)] / 255 : (Math.sin(elapsed * 3.2 + index * 0.72) + 1) * 0.08
+        const height = 0.08 + spectrumValue * 1.35
+        bar.scale.y += (height - bar.scale.y) * 0.28
+        bar.position.y = 0.56 + bar.scale.y * 0.5
+        bar.material.emissiveIntensity = 1.6 + spectrumValue * 5.4
+      })
+      if (bloomPass) bloomPass.strength = 0.13 + pulse * 0.24
       atmosphere.material.size = 0.016 + pulse * 0.026
       atmosphere.rotation.y = elapsed * 0.008
       if (cameraMoving) {
@@ -459,7 +491,8 @@ const SpatialScene = forwardRef(function SpatialScene({ onReady }, ref) {
         if (camera.position.distanceTo(desiredPosition) < 0.035 && controls.target.distanceTo(desiredTarget) < 0.025) cameraMoving = false
       }
       controls.update()
-      renderer.render(scene, camera)
+      if (composer) composer.render()
+      else renderer.render(scene, camera)
       animationFrame = requestAnimationFrame(animate)
     }
     animate()
@@ -469,6 +502,7 @@ const SpatialScene = forwardRef(function SpatialScene({ onReady }, ref) {
       camera.aspect = clientWidth / clientHeight
       camera.updateProjectionMatrix()
       renderer.setSize(clientWidth, clientHeight)
+      composer?.setSize(clientWidth, clientHeight)
     }
     window.addEventListener('resize', resize)
     const readyFrame = requestAnimationFrame(() => onReady?.())
@@ -491,6 +525,7 @@ const SpatialScene = forwardRef(function SpatialScene({ onReady }, ref) {
         })
       })
       renderer.dispose()
+      composer?.dispose()
       renderer.domElement.remove()
       apiRef.current = null
     }
