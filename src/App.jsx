@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowDown, ArrowRight, ExternalLink, Menu, X } from 'lucide-react'
+import { ArrowDown, ArrowRight, ExternalLink, Menu, Orbit, X } from 'lucide-react'
 
 const commitments = [
   ['Democracy people can control', 'Public decisions must be transparent, understandable and accountable. People need meaningful ways to participate between elections.'],
@@ -35,7 +35,7 @@ function Logo() {
 
 function Header() {
   const [open, setOpen] = useState(false)
-  const links = [['Manifesto', '#manifesto'], ['Commitments', '#commitments'], ['Method', '#method'], ['Contact', '#contact']]
+  const links = [['Manifesto', '#manifesto'], ['Commitments', '#commitments'], ['Method', '#method'], ['3D Parliament', '/spatial/'], ['Contact', '#contact']]
 
   useEffect(() => {
     document.body.classList.toggle('menu-open', open)
@@ -88,7 +88,7 @@ function Hero() {
         <p>A new European political movement for the generation that will inherit what comes next. Rebellion is the discipline to reject what no longer works — and construct something better.</p>
         <div className="actions">
           <ArrowLink href="#manifesto">Read the manifesto</ArrowLink>
-          <ArrowLink href="#commitments" variant="outline">Explore the 10 commitments</ArrowLink>
+          <a className="action action--spatial" href="/spatial/"><span>Enter 3D parliament</span><Orbit aria-hidden="true" size={19} strokeWidth={1.7} /></a>
         </div>
       </div>
       <div className="hero__proof" aria-label="Our political method">

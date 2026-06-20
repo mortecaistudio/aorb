@@ -65,6 +65,7 @@ body::before {
 .action { min-height: 60px; display: inline-flex; align-items: center; justify-content: space-between; gap: 34px; padding: 0 22px; border: 1px solid var(--violet); background: var(--violet); color: white; font-family: var(--mono); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; cursor: pointer; transition: transform .22s ease, background .22s ease, color .22s ease; }
 .action:hover, .action:focus-visible { transform: translateY(-3px); background: var(--white); color: var(--void); outline: none; }
 .action--outline { border-color: var(--green); background: rgba(5,5,7,.72); color: var(--green); }
+.action--spatial { border-color: var(--cyan); background: rgba(0, 229, 255, .08); color: var(--cyan); }
 .action--dark { border-color: var(--void); background: var(--void); color: var(--white); }
 .scroll-cue { position: absolute; z-index: 3; right: var(--gutter); bottom: 32px; display: grid; place-items: center; width: 48px; height: 48px; border: 1px solid var(--line); animation: float 2s ease-in-out infinite; }
 .signal-line { position: absolute; z-index: 3; left: var(--gutter); bottom: 30px; display: flex; gap: 6px; }
