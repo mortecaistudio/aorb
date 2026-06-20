@@ -104,6 +104,43 @@ function addChamber(scene) {
   const dais = mesh(new THREE.CylinderGeometry(1.15, 1.35, 0.42, 40), material(0x211922, 0.38, 0.36), [0, 0.12, -2.4])
   chamber.add(dais)
   scene.add(chamber)
+  return { ring, screenFrame, dais }
+}
+
+function addTechnoRig(scene) {
+  const rig = new THREE.Group()
+  const beams = []
+  const pulseRings = []
+  const colors = [VIOLET, CYAN, RED, VIOLET, CYAN, RED]
+
+  colors.forEach((color, index) => {
+    const angle = (index / colors.length) * Math.PI * 2
+    const beamMaterial = new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity: 0.035,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    })
+    const beam = mesh(new THREE.ConeGeometry(0.52, 6.8, 20, 1, true), beamMaterial, [Math.cos(angle) * 4.5, 3.3, Math.sin(angle) * 4.5 - 1.2])
+    beam.rotation.z = Math.sin(angle) * 0.11
+    beam.rotation.x = Math.cos(angle) * 0.11
+    beams.push(beam)
+    rig.add(beam)
+  })
+
+  ;[1.55, 2.25, 3.1, 4.15, 5.35].forEach((radius, index) => {
+    const color = index % 2 ? CYAN : VIOLET
+    const ringMaterial = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.2, blending: THREE.AdditiveBlending, depthWrite: false })
+    const floorRing = mesh(new THREE.TorusGeometry(radius, 0.018, 6, 96), ringMaterial, [0, 0.015 + index * 0.002, -0.6])
+    floorRing.rotation.x = Math.PI / 2
+    pulseRings.push(floorRing)
+    rig.add(floorRing)
+  })
+
+  scene.add(rig)
+  return { rig, beams, pulseRings }
 }
 
 function cylinderBetween(start, end, radius, surface, segments = 18) {
@@ -264,6 +301,7 @@ function addAtmosphere(scene) {
   geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
   const points = new THREE.Points(geometry, new THREE.PointsMaterial({ color: 0x8ac7ff, size: 0.018, transparent: true, opacity: 0.48 }))
   scene.add(points)
+  return points
 }
 
 const cameraViews = {
@@ -280,6 +318,7 @@ const SpatialScene = forwardRef(function SpatialScene({ onReady }, ref) {
   useImperativeHandle(ref, () => ({
     goTo: (name) => apiRef.current?.goTo(name),
     setAutoRotate: (value) => apiRef.current?.setAutoRotate(value),
+    connectAudio: (audio) => apiRef.current?.connectAudio(audio),
   }), [])
 
   useEffect(() => {
@@ -337,14 +376,20 @@ const SpatialScene = forwardRef(function SpatialScene({ onReady }, ref) {
     red.position.set(0, 4, -5)
     scene.add(violet, cyan, red)
 
-    addChamber(scene)
+    const chamberFx = addChamber(scene)
+    const technoFx = addTechnoRig(scene)
     scene.add(createRebel(), createUrsula())
-    addAtmosphere(scene)
+    const atmosphere = addAtmosphere(scene)
 
     let animationFrame
     let desiredPosition = initialView.position.clone()
     let desiredTarget = initialView.target.clone()
     let cameraMoving = false
+    let audioContext
+    let analyser
+    let mediaSource
+    let audioData
+    let bassLevel = 0
 
     const goTo = (name) => {
       const next = resolveView(name)
@@ -353,15 +398,61 @@ const SpatialScene = forwardRef(function SpatialScene({ onReady }, ref) {
       cameraMoving = true
     }
     const setAutoRotate = (value) => { controls.autoRotate = value }
-    apiRef.current = { goTo, setAutoRotate }
+    const connectAudio = (audio) => {
+      if (!audio) return
+      if (audioContext) {
+        void audioContext.resume()
+        return
+      }
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext
+      if (!AudioContextClass) return
+      try {
+        audioContext = new AudioContextClass()
+        analyser = audioContext.createAnalyser()
+        analyser.fftSize = 128
+        analyser.smoothingTimeConstant = 0.82
+        audioData = new Uint8Array(analyser.frequencyBinCount)
+        mediaSource = audioContext.createMediaElementSource(audio)
+        mediaSource.connect(analyser)
+        analyser.connect(audioContext.destination)
+        void audioContext.resume()
+      } catch {
+        analyser = undefined
+      }
+    }
+    apiRef.current = { goTo, setAutoRotate, connectAudio }
 
     const timer = new THREE.Timer()
     timer.connect(document)
     const animate = () => {
       timer.update()
       const elapsed = timer.getElapsed()
-      violet.intensity = 70 + Math.sin(elapsed * 1.5) * 7
-      cyan.intensity = 62 + Math.cos(elapsed * 1.15) * 6
+      if (analyser && audioData) {
+        analyser.getByteFrequencyData(audioData)
+        let bass = 0
+        for (let index = 0; index < 12; index += 1) bass += audioData[index]
+        bassLevel += ((bass / (12 * 255)) - bassLevel) * 0.24
+      } else {
+        bassLevel += (0.08 - bassLevel) * 0.03
+      }
+      const pulse = Math.max(0.04, bassLevel)
+      violet.intensity = 58 + pulse * 145 + Math.sin(elapsed * 1.5) * 4
+      cyan.intensity = 52 + pulse * 125 + Math.cos(elapsed * 1.15) * 4
+      red.intensity = 28 + pulse * 78
+      chamberFx.ring.material.emissiveIntensity = 1.5 + pulse * 6
+      chamberFx.dais.scale.y = 1 + pulse * 0.08
+      technoFx.rig.rotation.y = elapsed * 0.025
+      technoFx.beams.forEach((beam, index) => {
+        beam.material.opacity = 0.025 + pulse * (0.16 + (index % 2) * 0.035)
+        beam.rotation.y = elapsed * (index % 2 ? -0.055 : 0.045) + index
+      })
+      technoFx.pulseRings.forEach((floorRing, index) => {
+        const scale = 1 + pulse * (0.025 + index * 0.008)
+        floorRing.scale.setScalar(scale)
+        floorRing.material.opacity = 0.11 + pulse * 0.5
+      })
+      atmosphere.material.size = 0.016 + pulse * 0.026
+      atmosphere.rotation.y = elapsed * 0.008
       if (cameraMoving) {
         camera.position.lerp(desiredPosition, 0.055)
         controls.target.lerp(desiredTarget, 0.055)
@@ -388,6 +479,9 @@ const SpatialScene = forwardRef(function SpatialScene({ onReady }, ref) {
       window.removeEventListener('resize', resize)
       controls.dispose()
       timer.dispose()
+      if (mediaSource) mediaSource.disconnect()
+      if (analyser) analyser.disconnect()
+      if (audioContext) void audioContext.close()
       scene.traverse((item) => {
         item.geometry?.dispose()
         const materials = Array.isArray(item.material) ? item.material : [item.material]

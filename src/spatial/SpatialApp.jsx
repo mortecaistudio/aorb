@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ArrowLeft, Box, Expand, Eye, Image, Pause, Play, Rotate3D } from 'lucide-react'
+import { ArrowLeft, Box, Expand, Eye, Image, Pause, Play, Rotate3D, Volume2, VolumeX } from 'lucide-react'
 import SpatialScene from './SpatialScene.jsx'
 
 const views = [
@@ -8,18 +8,72 @@ const views = [
   ['parliament', 'Parliament'],
 ]
 
+const tracks = [
+  { title: 'Void Protocol', src: '/audio/void-protocol.mp3' },
+  { title: 'Neon Insurrection', src: '/audio/neon-insurrection.mp3' },
+  { title: 'Orbital Rebellion', src: '/audio/orbital-rebellion.mp3' },
+  { title: 'Hard Techno Nation', src: '/audio/hard-techno-nation.mp3' },
+]
+
 export default function SpatialApp() {
   const sceneRef = useRef(null)
+  const audioRef = useRef(null)
+  const userPausedRef = useRef(false)
   const [autoRotate, setAutoRotate] = useState(false)
   const [activeView, setActiveView] = useState('faceoff')
   const [loaded, setLoaded] = useState(false)
   const [cinematic, setCinematic] = useState(() => new URLSearchParams(window.location.search).get('mode') !== 'spatial')
+  const [audioPlaying, setAudioPlaying] = useState(false)
+  const [trackIndex, setTrackIndex] = useState(0)
+  const currentTrack = tracks[trackIndex]
   const handleReady = useCallback(() => setLoaded(true), [])
 
   useEffect(() => {
     document.body.classList.add('spatial-page')
     return () => document.body.classList.remove('spatial-page')
   }, [])
+
+  useEffect(() => {
+    const audio = audioRef.current
+    if (!audio) return undefined
+    audio.volume = 0.34
+
+    const syncPlaying = () => setAudioPlaying(!audio.paused)
+    const tryStart = async () => {
+      if (userPausedRef.current) return
+      try {
+        await audio.play()
+      } catch {
+        // Browsers unlock audible autoplay after the first user gesture.
+      }
+    }
+    const unlock = () => {
+      sceneRef.current?.connectAudio(audio)
+      void tryStart()
+      window.removeEventListener('pointerdown', unlock)
+      window.removeEventListener('keydown', unlock)
+    }
+
+    audio.addEventListener('play', syncPlaying)
+    audio.addEventListener('pause', syncPlaying)
+    window.addEventListener('pointerdown', unlock, { passive: true })
+    window.addEventListener('keydown', unlock)
+    void tryStart()
+
+    return () => {
+      audio.pause()
+      audio.removeEventListener('play', syncPlaying)
+      audio.removeEventListener('pause', syncPlaying)
+      window.removeEventListener('pointerdown', unlock)
+      window.removeEventListener('keydown', unlock)
+    }
+  }, [])
+
+  useEffect(() => {
+    const audio = audioRef.current
+    if (!audio || userPausedRef.current) return
+    void audio.play().catch(() => setAudioPlaying(false))
+  }, [trackIndex])
 
   const chooseView = useCallback((view) => {
     setCinematic(false)
@@ -50,8 +104,30 @@ export default function SpatialApp() {
     else await document.exitFullscreen?.()
   }, [])
 
+  const toggleAudio = useCallback(async () => {
+    const audio = audioRef.current
+    if (!audio) return
+    sceneRef.current?.connectAudio(audio)
+    if (audio.paused) {
+      userPausedRef.current = false
+      try {
+        await audio.play()
+      } catch {
+        setAudioPlaying(false)
+      }
+    } else {
+      userPausedRef.current = true
+      audio.pause()
+    }
+  }, [])
+
+  const playNextTrack = useCallback(() => {
+    setTrackIndex((current) => (current + 1) % tracks.length)
+  }, [])
+
   return (
     <main className="spatial-shell">
+      <audio ref={audioRef} src={currentTrack.src} autoPlay preload="metadata" playsInline onEnded={playNextTrack} />
       <SpatialScene ref={sceneRef} onReady={handleReady} />
       <div className={cinematic ? 'cinematic-layer cinematic-layer--visible' : 'cinematic-layer'} aria-hidden="true">
         <img src="/assets/aorb-faceoff-reference.webp" alt="" width="1672" height="941" />
@@ -60,7 +136,13 @@ export default function SpatialApp() {
       <header className="spatial-header">
         <a className="spatial-logo" href="/" aria-label="Return to AORB home">AORB<span>.</span></a>
         <div className="spatial-status"><i /> Interactive spatial scene</div>
-        <a className="back-link" href="/"><ArrowLeft size={17} /> Back to site</a>
+        <div className="header-actions">
+          <button className={audioPlaying ? 'audio-toggle audio-toggle--playing' : 'audio-toggle'} type="button" onClick={toggleAudio} aria-label={audioPlaying ? `Pause ${currentTrack.title}` : `Play ${currentTrack.title}`} aria-pressed={audioPlaying} title={currentTrack.title}>
+            {audioPlaying ? <Volume2 size={17} /> : <VolumeX size={17} />}
+            <span>{audioPlaying ? `Pause · ${currentTrack.title}` : `Start · ${currentTrack.title}`}</span>
+          </button>
+          <a className="back-link" href="/"><ArrowLeft size={17} /> Back to site</a>
+        </div>
       </header>
 
       <div className="mode-switch" aria-label="Presentation mode">

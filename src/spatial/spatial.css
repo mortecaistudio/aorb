@@ -120,7 +120,6 @@ button, a { font: inherit; }
 .spatial-status i { width: 7px; height: 7px; border-radius: 50%; background: #b7ff00; box-shadow: 0 0 14px #b7ff00; }
 
 .back-link {
-  justify-self: end;
   display: inline-flex;
   align-items: center;
   gap: 9px;
@@ -131,6 +130,28 @@ button, a { font: inherit; }
   letter-spacing: .08em;
   white-space: nowrap;
 }
+
+.header-actions { justify-self: end; display: flex; align-items: center; gap: 20px; }
+
+.audio-toggle {
+  min-height: 38px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(255, 255, 255, .18);
+  color: rgba(255, 255, 255, .68);
+  background: rgba(5, 7, 12, .45);
+  font: 500 .64rem/1 'IBM Plex Mono', monospace;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.audio-toggle--playing { color: #b7ff00; border-color: rgba(183, 255, 0, .42); }
+.audio-toggle:hover { color: #fff; border-color: #8b5cf6; }
 
 .spatial-copy {
   position: absolute;
@@ -268,6 +289,10 @@ button, a { font: inherit; }
   .spatial-status { display: none; }
   .spatial-logo { font-size: 1.28rem; }
   .back-link { font-size: .61rem; }
+  .header-actions { gap: 9px; }
+  .back-link { width: 38px; min-height: 38px; justify-content: center; font-size: 0; }
+  .audio-toggle { width: 38px; min-height: 38px; padding: 0; justify-content: center; }
+  .audio-toggle span { display: none; }
   .mode-switch { top: 74px; bottom: auto; width: calc(100% - 24px); }
   .mode-switch button { flex: 1; justify-content: center; min-height: 36px; padding: 0 7px; font-size: .58rem; }
   .cinematic-layer img { object-fit: contain; object-position: center; }
