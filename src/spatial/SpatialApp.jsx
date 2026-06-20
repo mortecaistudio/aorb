@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ArrowLeft, Box, Expand, Eye, Image, Pause, Play, Rotate3D, SkipForward, Volume2, VolumeX } from 'lucide-react'
+import { ArrowLeft, Box, Clapperboard, Expand, Eye, Image, Pause, Play, Rotate3D, SkipForward, Volume2, VolumeX } from 'lucide-react'
 import SpatialScene from './SpatialScene.jsx'
 
 const views = [
@@ -25,6 +25,8 @@ export default function SpatialApp() {
   const [cinematic, setCinematic] = useState(() => new URLSearchParams(window.location.search).get('mode') !== 'spatial')
   const [audioPlaying, setAudioPlaying] = useState(false)
   const [trackIndex, setTrackIndex] = useState(0)
+  const [directorMode, setDirectorMode] = useState(false)
+  const [playback, setPlayback] = useState({ current: 0, duration: 0 })
   const currentTrack = tracks[trackIndex]
   const handleReady = useCallback(() => setLoaded(true), [])
 
@@ -39,6 +41,7 @@ export default function SpatialApp() {
     audio.volume = 0.84
 
     const syncPlaying = () => setAudioPlaying(!audio.paused)
+    const syncPlayback = () => setPlayback({ current: audio.currentTime || 0, duration: audio.duration || 0 })
     const tryStart = async () => {
       if (userPausedRef.current) return
       try {
@@ -56,6 +59,8 @@ export default function SpatialApp() {
 
     audio.addEventListener('play', syncPlaying)
     audio.addEventListener('pause', syncPlaying)
+    audio.addEventListener('timeupdate', syncPlayback)
+    audio.addEventListener('loadedmetadata', syncPlayback)
     window.addEventListener('pointerdown', unlock, { passive: true })
     window.addEventListener('keydown', unlock)
     void tryStart()
@@ -64,6 +69,8 @@ export default function SpatialApp() {
       audio.pause()
       audio.removeEventListener('play', syncPlaying)
       audio.removeEventListener('pause', syncPlaying)
+      audio.removeEventListener('timeupdate', syncPlayback)
+      audio.removeEventListener('loadedmetadata', syncPlayback)
       window.removeEventListener('pointerdown', unlock)
       window.removeEventListener('keydown', unlock)
     }
@@ -77,7 +84,9 @@ export default function SpatialApp() {
 
   const chooseView = useCallback((view) => {
     setCinematic(false)
+    setDirectorMode(false)
     setActiveView(view)
+    sceneRef.current?.setDirectorMode(false)
     sceneRef.current?.goTo(view)
   }, [])
 
@@ -85,18 +94,38 @@ export default function SpatialApp() {
     setCinematic(nextCinematic)
     if (nextCinematic) {
       setAutoRotate(false)
+      setDirectorMode(false)
       setActiveView('faceoff')
       sceneRef.current?.setAutoRotate(false)
+      sceneRef.current?.setDirectorMode(false)
       sceneRef.current?.goTo('faceoff')
     }
   }, [])
 
   const toggleRotation = useCallback(() => {
     setCinematic(false)
+    setDirectorMode(false)
+    sceneRef.current?.setDirectorMode(false)
     setAutoRotate((current) => {
       sceneRef.current?.setAutoRotate(!current)
       return !current
     })
+  }, [])
+
+  const toggleDirector = useCallback(() => {
+    setCinematic(false)
+    setAutoRotate(false)
+    setDirectorMode((current) => {
+      sceneRef.current?.setAutoRotate(false)
+      sceneRef.current?.setDirectorMode(!current)
+      return !current
+    })
+  }, [])
+
+  const seekAudio = useCallback((event) => {
+    const audio = audioRef.current
+    if (!audio) return
+    audio.currentTime = Number(event.target.value)
   }, [])
 
   const enterFullscreen = useCallback(async () => {
@@ -159,6 +188,7 @@ export default function SpatialApp() {
         <button className="now-playing__next" type="button" onClick={playNextTrack} aria-label="Play next track">
           <SkipForward size={17} />
         </button>
+        <input className="now-playing__progress" type="range" min="0" max={playback.duration || 0} step="0.1" value={Math.min(playback.current, playback.duration || 0)} onChange={seekAudio} aria-label="Track progress" />
       </section>
 
       <div className="mode-switch" aria-label="Presentation mode">
@@ -176,6 +206,9 @@ export default function SpatialApp() {
       </aside>
 
       <div className="spatial-toolbar">
+        <button className={directorMode ? 'active' : ''} type="button" onClick={toggleDirector} aria-pressed={directorMode}>
+          <Clapperboard size={18} /><span>{directorMode ? 'Director on' : 'Director mode'}</span>
+        </button>
         <button type="button" onClick={toggleRotation} aria-pressed={autoRotate}>
           {autoRotate ? <Pause size={18} /> : <Play size={18} />}
           <span>{autoRotate ? 'Pause orbit' : 'Auto orbit'}</span>

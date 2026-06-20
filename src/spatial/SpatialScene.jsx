@@ -564,6 +564,7 @@ const SpatialScene = forwardRef(function SpatialScene({ onReady }, ref) {
   useImperativeHandle(ref, () => ({
     goTo: (name) => apiRef.current?.goTo(name),
     setAutoRotate: (value) => apiRef.current?.setAutoRotate(value),
+    setDirectorMode: (value) => apiRef.current?.setDirectorMode(value),
     connectAudio: (audio) => apiRef.current?.connectAudio(audio),
   }), [])
 
@@ -655,6 +656,8 @@ const SpatialScene = forwardRef(function SpatialScene({ onReady }, ref) {
     let audioContext
     let analyser
     let mediaSource
+    let compressor
+    let masterGain
     let audioData
     let bassLevel = 0
     let midLevel = 0
@@ -663,6 +666,9 @@ const SpatialScene = forwardRef(function SpatialScene({ onReady }, ref) {
     let lastBeatAt = -1
     let shockwaveIndex = 0
     let kickEnergy = 0
+    let directorMode = false
+    let directorIndex = 0
+    let nextDirectorCut = 0
     let pageVisible = !document.hidden
     const rebelBase = { y: rebel.position.y, rotationY: rebel.rotation.y }
     const ursulaBase = { y: ursula.position.y, rotationY: ursula.rotation.y }
@@ -676,6 +682,11 @@ const SpatialScene = forwardRef(function SpatialScene({ onReady }, ref) {
       cameraMoving = true
     }
     const setAutoRotate = (value) => { controls.autoRotate = value }
+    const setDirectorMode = (value) => {
+      directorMode = value
+      controls.autoRotate = false
+      nextDirectorCut = 0
+    }
     const connectAudio = (audio) => {
       if (!audio) return
       if (audioContext) {
@@ -689,16 +700,26 @@ const SpatialScene = forwardRef(function SpatialScene({ onReady }, ref) {
         analyser = audioContext.createAnalyser()
         analyser.fftSize = 128
         analyser.smoothingTimeConstant = 0.82
+        compressor = audioContext.createDynamicsCompressor()
+        compressor.threshold.value = -18
+        compressor.knee.value = 18
+        compressor.ratio.value = 4
+        compressor.attack.value = 0.008
+        compressor.release.value = 0.22
+        masterGain = audioContext.createGain()
+        masterGain.gain.value = 1.12
         audioData = new Uint8Array(analyser.frequencyBinCount)
         mediaSource = audioContext.createMediaElementSource(audio)
         mediaSource.connect(analyser)
-        analyser.connect(audioContext.destination)
+        analyser.connect(compressor)
+        compressor.connect(masterGain)
+        masterGain.connect(audioContext.destination)
         void audioContext.resume()
       } catch {
         analyser = undefined
       }
     }
-    apiRef.current = { goTo, setAutoRotate, connectAudio }
+    apiRef.current = { goTo, setAutoRotate, setDirectorMode, connectAudio }
 
     const timer = new THREE.Timer()
     timer.connect(document)
@@ -739,6 +760,12 @@ const SpatialScene = forwardRef(function SpatialScene({ onReady }, ref) {
       }
       previousBass = bassLevel
       kickEnergy *= 0.86
+      if (directorMode && elapsed >= nextDirectorCut) {
+        const sequence = ['faceoff', 'rebel', 'parliament', 'free']
+        goTo(sequence[directorIndex % sequence.length])
+        directorIndex += 1
+        nextDirectorCut = elapsed + 7.5
+      }
       const dance = reduceMotion ? 0 : Math.min(1, bassLevel * 0.82 + midLevel * 0.48)
       const rebelBeat = Math.sin(elapsed * (3.35 + dance * 1.8))
       const rebelSway = Math.sin(elapsed * 1.9)
@@ -869,6 +896,8 @@ const SpatialScene = forwardRef(function SpatialScene({ onReady }, ref) {
       timer.dispose()
       if (mediaSource) mediaSource.disconnect()
       if (analyser) analyser.disconnect()
+      if (compressor) compressor.disconnect()
+      if (masterGain) masterGain.disconnect()
       if (audioContext) void audioContext.close()
       scene.traverse((item) => {
         item.geometry?.dispose()

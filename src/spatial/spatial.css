@@ -172,7 +172,7 @@ button, a { font: inherit; }
   bottom: 31px;
   width: min(360px, 30vw);
   min-height: 62px;
-  padding: 8px;
+  padding: 8px 8px 11px;
   display: grid;
   grid-template-columns: 44px minmax(0, 1fr) 72px 36px;
   align-items: center;
@@ -200,6 +200,9 @@ button, a { font: inherit; }
 .now-playing__spectrum { height: 28px; display: flex; align-items: center; justify-content: center; gap: 3px; }
 .now-playing__spectrum i { width: 2px; height: 18%; background: linear-gradient(#b7ff00, #00d9ff); opacity: .35; transform-origin: center; }
 .now-playing--active .now-playing__spectrum i { opacity: .9; animation: spectrum .72s ease-in-out infinite alternate; animation-delay: calc(var(--bar) * -71ms); }
+.now-playing__progress { position: absolute; left: 0; right: 0; bottom: -1px; width: 100%; height: 3px; margin: 0; border: 0; border-radius: 0; background: rgba(255, 255, 255, .12); accent-color: #b7ff00; cursor: pointer; appearance: none; }
+.now-playing__progress::-webkit-slider-runnable-track { height: 3px; background: rgba(255, 255, 255, .12); }
+.now-playing__progress::-webkit-slider-thumb { width: 8px; height: 8px; margin-top: -2.5px; border: 0; border-radius: 50%; background: #b7ff00; box-shadow: 0 0 10px rgba(183, 255, 0, .75); appearance: none; }
 
 .spatial-copy {
   position: absolute;
@@ -295,6 +298,7 @@ button, a { font: inherit; }
 }
 
 .spatial-toolbar button:hover { color: white; border-color: #00d9ff; background: rgba(0, 94, 118, .35); }
+.spatial-toolbar button.active { color: #b7ff00; border-color: rgba(183, 255, 0, .5); background: rgba(65, 88, 0, .24); }
 
 .spatial-help {
   position: absolute;
@@ -361,7 +365,7 @@ button, a { font: inherit; }
   .view-controls button span { display: none; }
   .view-controls button { font-size: 0; }
   .view-controls button:hover, .view-controls button.active { transform: translateY(-3px); }
-  .spatial-toolbar { left: 12px; bottom: max(9px, env(safe-area-inset-bottom)); width: calc(100% - 24px); display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); transform: none; padding: 5px; }
+  .spatial-toolbar { left: 12px; bottom: max(9px, env(safe-area-inset-bottom)); width: calc(100% - 24px); display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); transform: none; padding: 5px; }
   .spatial-toolbar button { width: 100%; min-width: 0; min-height: 43px; padding: 0 6px; overflow: hidden; }
   .spatial-toolbar button span { display: none; }
   .spatial-help { display: none; }
