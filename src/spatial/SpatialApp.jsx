@@ -9,8 +9,8 @@ const views = [
 ]
 
 const tracks = [
+  { title: 'Distant Signal', src: '/audio/neon-insurrection.mp3' },
   { title: 'Void Protocol', src: '/audio/void-protocol.mp3' },
-  { title: 'Neon Insurrection', src: '/audio/neon-insurrection.mp3' },
   { title: 'Orbital Rebellion', src: '/audio/orbital-rebellion.mp3' },
   { title: 'Hard Techno Nation', src: '/audio/hard-techno-nation.mp3' },
 ]

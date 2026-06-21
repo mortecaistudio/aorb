@@ -659,6 +659,8 @@ const SpatialScene = forwardRef(function SpatialScene({ onReady }, ref) {
     let mediaSource
     let compressor
     let masterGain
+    let bassShelf
+    let airShelf
     let audioData
     let bassLevel = 0
     let midLevel = 0
@@ -711,11 +713,21 @@ const SpatialScene = forwardRef(function SpatialScene({ onReady }, ref) {
         compressor.attack.value = 0.008
         compressor.release.value = 0.22
         masterGain = audioContext.createGain()
-        masterGain.gain.value = 1.12
+        masterGain.gain.value = 1.08
+        bassShelf = audioContext.createBiquadFilter()
+        bassShelf.type = 'lowshelf'
+        bassShelf.frequency.value = 115
+        bassShelf.gain.value = 3.2
+        airShelf = audioContext.createBiquadFilter()
+        airShelf.type = 'highshelf'
+        airShelf.frequency.value = 6800
+        airShelf.gain.value = -1.4
         audioData = new Uint8Array(analyser.frequencyBinCount)
         mediaSource = audioContext.createMediaElementSource(audio)
         mediaSource.connect(analyser)
-        analyser.connect(compressor)
+        analyser.connect(bassShelf)
+        bassShelf.connect(airShelf)
+        airShelf.connect(compressor)
         compressor.connect(masterGain)
         masterGain.connect(audioContext.destination)
         void audioContext.resume()
@@ -917,6 +929,8 @@ const SpatialScene = forwardRef(function SpatialScene({ onReady }, ref) {
       timer.dispose()
       if (mediaSource) mediaSource.disconnect()
       if (analyser) analyser.disconnect()
+      if (bassShelf) bassShelf.disconnect()
+      if (airShelf) airShelf.disconnect()
       if (compressor) compressor.disconnect()
       if (masterGain) masterGain.disconnect()
       if (audioContext) void audioContext.close()
