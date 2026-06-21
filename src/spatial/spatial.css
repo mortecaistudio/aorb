@@ -343,35 +343,37 @@ button, a { font: inherit; }
 @keyframes spectrum { 0% { height: 18%; } 45% { height: calc(35% + var(--bar) * 4%); } 100% { height: calc(96% - var(--bar) * 3%); } }
 @keyframes director-pulse { to { opacity: .4; box-shadow: 0 0 24px #b7ff00; transform: scale(1.35); } }
 
-button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid #b7ff00; outline-offset: 3px; }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid #b7ff00; outline-offset: 3px; }
 
 @media (max-width: 760px) {
-  .spatial-shell { min-height: 100dvh; }
-  .spatial-shell::after { background: linear-gradient(0deg, rgba(2, 2, 6, .74), transparent 45%), linear-gradient(90deg, rgba(2, 2, 6, .35), transparent 55%); }
+  .spatial-shell { height: 100dvh; min-height: 100dvh; }
+  .spatial-shell::after { background: linear-gradient(0deg, rgba(2, 2, 6, .8), transparent 48%), linear-gradient(180deg, rgba(2, 2, 6, .32), transparent 28%), linear-gradient(90deg, rgba(2, 2, 6, .24), transparent 55%); }
   .spatial-shell::before { opacity: .07; }
-  .spatial-header { min-height: 64px; grid-template-columns: 1fr auto; padding: 0 17px; }
+  .spatial-header { min-height: calc(64px + env(safe-area-inset-top)); grid-template-columns: 1fr auto; padding: env(safe-area-inset-top) 17px 0; }
   .spatial-status { display: none; }
   .spatial-logo { font-size: 1.28rem; }
   .back-link { font-size: .61rem; }
-  .header-actions { position: absolute; right: 12px; gap: 7px; }
+  .header-actions { position: absolute; right: 12px; bottom: 13px; gap: 7px; }
   .back-link { width: 38px; min-height: 38px; justify-content: center; font-size: 0; }
   .audio-toggle { width: 38px; min-height: 38px; padding: 0; justify-content: center; }
   .audio-toggle span { display: none; }
-  .now-playing { left: 12px; bottom: 68px; width: calc(100% - 24px); min-height: 48px; grid-template-columns: 36px minmax(0, 1fr) 42px 28px 28px; gap: 5px; padding: 6px; }
+  .now-playing { left: 12px; bottom: calc(68px + env(safe-area-inset-bottom)); width: calc(100% - 24px); min-height: 50px; grid-template-columns: 38px minmax(0, 1fr) 40px 32px 32px; gap: 5px; padding: 6px; }
   .playlist-selector { width: 100%; min-width: 0; }
-  .now-playing__play { width: 36px; height: 36px; }
+  .now-playing__play { width: 38px; height: 38px; }
+  .now-playing__next, .now-playing__share { width: 32px; height: 40px; }
   .now-playing__meta span { font-size: .5rem; }
   .now-playing__meta strong { font-size: .68rem; }
   .now-playing__spectrum { height: 22px; }
-  .mode-switch { top: 74px; bottom: auto; width: calc(100% - 24px); }
+  .mode-switch { top: calc(74px + env(safe-area-inset-top)); bottom: auto; width: calc(100% - 24px); }
   .mode-switch button { min-width: 0; flex: 1; justify-content: center; min-height: 36px; padding: 0 5px; font-size: .54rem; overflow: hidden; white-space: nowrap; }
-  .cinematic-layer img { object-fit: contain; object-position: center; }
+  .cinematic-layer { background: #05070c; }
+  .cinematic-layer img { width: 100%; height: 100%; object-fit: cover; object-position: 43% center; transform: scale(1.015); }
   .spatial-copy { top: 86px; left: 18px; width: 85vw; }
   .spatial-copy h1 { font-size: clamp(2.35rem, 11vw, 3.25rem); line-height: .88; }
   .spatial-copy p { width: 78vw; margin-top: 13px; font-size: .69rem; line-height: 1.45; }
-  .view-controls { top: auto; right: auto; left: 12px; bottom: 126px; display: grid; grid-template-columns: repeat(3, 42px); transform: none; }
+  .view-controls { top: auto; right: auto; left: 12px; bottom: calc(168px + env(safe-area-inset-bottom)); display: grid; grid-template-columns: repeat(3, 44px); transform: none; }
   .view-controls > span { display: none; }
-  .view-controls button { width: 42px; min-height: 42px; padding: 0; justify-content: center; }
+  .view-controls button { width: 44px; min-height: 44px; padding: 0; justify-content: center; }
   .view-controls button span { display: none; }
   .view-controls button { font-size: 0; }
   .view-controls button:hover, .view-controls button.active { transform: translateY(-3px); }
@@ -379,6 +381,13 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
   .spatial-toolbar button { width: 100%; min-width: 0; min-height: 43px; padding: 0 6px; overflow: hidden; }
   .spatial-toolbar button span { display: none; }
   .spatial-help { display: none; }
+}
+
+@media (max-width: 760px) and (max-height: 700px) {
+  .mode-switch { top: calc(68px + env(safe-area-inset-top)); }
+  .view-controls { bottom: calc(158px + env(safe-area-inset-bottom)); }
+  .now-playing { bottom: calc(64px + env(safe-area-inset-bottom)); }
+  .playlist-selector { height: 28px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
