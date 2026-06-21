@@ -219,7 +219,10 @@ export default function SpatialApp() {
       <audio ref={audioRef} src={currentTrack.src} autoPlay preload="metadata" playsInline onEnded={playNextTrack} />
       <SpatialScene ref={sceneRef} onReady={handleReady} />
       <div className={cinematic ? 'cinematic-layer cinematic-layer--visible' : 'cinematic-layer'} aria-hidden="true">
-        <img src="/assets/aorb-faceoff-reference.webp" alt="" width="1672" height="941" />
+        <picture>
+          <source media="(max-width: 760px)" srcSet="/assets/aorb-faceoff-mobile.webp" type="image/webp" />
+          <img src="/assets/aorb-faceoff-reference.webp" alt="" width="1672" height="941" />
+        </picture>
       </div>
 
       <header className="spatial-header">
