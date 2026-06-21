@@ -130,6 +130,7 @@ button, a { font: inherit; }
 }
 
 .spatial-status i { width: 7px; height: 7px; border-radius: 50%; background: #b7ff00; box-shadow: 0 0 14px #b7ff00; }
+.spatial-status--director i { animation: director-pulse 1.2s ease-in-out infinite alternate; }
 
 .back-link {
   display: inline-flex;
@@ -335,6 +336,9 @@ button, a { font: inherit; }
 @keyframes load { to { transform: translateX(82%); } }
 @keyframes scan-drift { to { transform: translateY(8px); } }
 @keyframes spectrum { 0% { height: 18%; } 45% { height: calc(35% + var(--bar) * 4%); } 100% { height: calc(96% - var(--bar) * 3%); } }
+@keyframes director-pulse { to { opacity: .4; box-shadow: 0 0 24px #b7ff00; transform: scale(1.35); } }
+
+button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid #b7ff00; outline-offset: 3px; }
 
 @media (max-width: 760px) {
   .spatial-shell { min-height: 100dvh; }

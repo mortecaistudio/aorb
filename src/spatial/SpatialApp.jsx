@@ -22,10 +22,10 @@ export default function SpatialApp() {
   const [autoRotate, setAutoRotate] = useState(false)
   const [activeView, setActiveView] = useState('faceoff')
   const [loaded, setLoaded] = useState(false)
-  const [cinematic, setCinematic] = useState(() => new URLSearchParams(window.location.search).get('mode') !== 'spatial')
+  const [cinematic, setCinematic] = useState(() => new URLSearchParams(window.location.search).get('mode') === 'cinematic')
   const [audioPlaying, setAudioPlaying] = useState(false)
   const [trackIndex, setTrackIndex] = useState(0)
-  const [directorMode, setDirectorMode] = useState(false)
+  const [directorMode, setDirectorMode] = useState(() => new URLSearchParams(window.location.search).get('mode') !== 'cinematic')
   const [playback, setPlayback] = useState({ current: 0, duration: 0 })
   const currentTrack = tracks[trackIndex]
   const handleReady = useCallback(() => setLoaded(true), [])
@@ -34,6 +34,11 @@ export default function SpatialApp() {
     document.body.classList.add('spatial-page')
     return () => document.body.classList.remove('spatial-page')
   }, [])
+
+  useEffect(() => {
+    if (!loaded || !directorMode) return
+    sceneRef.current?.setDirectorMode(true)
+  }, [loaded, directorMode])
 
   useEffect(() => {
     const audio = audioRef.current
@@ -92,6 +97,9 @@ export default function SpatialApp() {
 
   const chooseMode = useCallback((nextCinematic) => {
     setCinematic(nextCinematic)
+    const url = new URL(window.location.href)
+    url.searchParams.set('mode', nextCinematic ? 'cinematic' : 'spatial')
+    window.history.replaceState({}, '', url)
     if (nextCinematic) {
       setAutoRotate(false)
       setDirectorMode(false)
@@ -164,7 +172,7 @@ export default function SpatialApp() {
 
       <header className="spatial-header">
         <a className="spatial-logo" href="/" aria-label="Return to AORB home">AORB<span>.</span></a>
-        <div className="spatial-status"><i /> Interactive spatial scene</div>
+        <div className={directorMode ? 'spatial-status spatial-status--director' : 'spatial-status'}><i /> {directorMode ? 'Live director · audio reactive' : 'Interactive spatial scene'}</div>
         <div className="header-actions">
           <button className={audioPlaying ? 'audio-toggle audio-toggle--playing' : 'audio-toggle'} type="button" onClick={toggleAudio} aria-label={audioPlaying ? `Pause ${currentTrack.title}` : `Play ${currentTrack.title}`} aria-pressed={audioPlaying} title={currentTrack.title}>
             {audioPlaying ? <Volume2 size={17} /> : <VolumeX size={17} />}

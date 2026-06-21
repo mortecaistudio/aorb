@@ -593,7 +593,8 @@ const SpatialScene = forwardRef(function SpatialScene({ onReady }, ref) {
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' })
     renderer.setSize(mount.clientWidth, mount.clientHeight)
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, window.innerWidth < 700 ? 1.22 : 1.55))
+    let renderScale = Math.min(window.devicePixelRatio, window.innerWidth < 700 ? 1.22 : 1.55)
+    renderer.setPixelRatio(renderScale)
     renderer.outputColorSpace = THREE.SRGBColorSpace
     renderer.toneMapping = THREE.ACESFilmicToneMapping
     renderer.toneMappingExposure = 0.88
@@ -669,6 +670,9 @@ const SpatialScene = forwardRef(function SpatialScene({ onReady }, ref) {
     let directorMode = false
     let directorIndex = 0
     let nextDirectorCut = 0
+    let qualityWindowStarted = 0
+    let qualityFrames = 0
+    let qualitySettled = false
     let pageVisible = !document.hidden
     const rebelBase = { y: rebel.position.y, rotationY: rebel.rotation.y }
     const ursulaBase = { y: ursula.position.y, rotationY: ursula.rotation.y }
@@ -760,6 +764,23 @@ const SpatialScene = forwardRef(function SpatialScene({ onReady }, ref) {
       }
       previousBass = bassLevel
       kickEnergy *= 0.86
+      if (!qualitySettled) {
+        qualityFrames += 1
+        if (!qualityWindowStarted) qualityWindowStarted = elapsed
+        if (elapsed - qualityWindowStarted >= 4) {
+          const fps = qualityFrames / (elapsed - qualityWindowStarted)
+          if (fps < 43 && renderScale > 1) {
+            renderScale = Math.max(1, renderScale - 0.2)
+            renderer.setPixelRatio(renderScale)
+            renderer.setSize(mount.clientWidth, mount.clientHeight, false)
+            composer?.setSize(mount.clientWidth, mount.clientHeight)
+            qualityFrames = 0
+            qualityWindowStarted = elapsed
+          } else {
+            qualitySettled = true
+          }
+        }
+      }
       if (directorMode && elapsed >= nextDirectorCut) {
         const sequence = ['faceoff', 'rebel', 'parliament', 'free']
         goTo(sequence[directorIndex % sequence.length])
