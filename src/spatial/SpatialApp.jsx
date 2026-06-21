@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ArrowLeft, Box, Clapperboard, Expand, Eye, Image, Pause, Play, Rotate3D, SkipForward, Volume2, VolumeX } from 'lucide-react'
+import { ArrowLeft, Box, Clapperboard, Expand, Eye, Image, ListMusic, Pause, Play, Rotate3D, Share2, SkipForward, Volume2, VolumeX } from 'lucide-react'
 import SpatialScene from './SpatialScene.jsx'
 
 const views = [
@@ -8,14 +8,38 @@ const views = [
   ['parliament', 'Parliament'],
 ]
 
-const tracks = [
-  { title: 'Distant Signal', src: '/audio/neon-insurrection.mp3' },
-  { title: 'Void Protocol', src: '/audio/void-protocol.mp3' },
-  { title: 'Orbital Rebellion', src: '/audio/orbital-rebellion.mp3' },
-  { title: 'Hard Techno Nation', src: '/audio/hard-techno-nation.mp3' },
+const playlists = [
+  {
+    id: 'night-drive',
+    title: 'Night Drive Phonk',
+    tracks: [
+      { id: 'neon-halo-drift', title: 'Neon Halo Drift', src: '/audio/neon-halo-drift.mp3', share: '/spatial/music/neon-halo-drift/' },
+      { id: 'distant-signal', title: 'Distant Signal', src: '/audio/neon-insurrection.mp3' },
+      { id: 'void-protocol', title: 'Void Protocol', src: '/audio/void-protocol.mp3' },
+    ],
+  },
+  {
+    id: 'rebel-techno',
+    title: 'Rebel Techno',
+    tracks: [
+      { id: 'orbital-rebellion', title: 'Orbital Rebellion', src: '/audio/orbital-rebellion.mp3' },
+      { id: 'hard-techno-nation', title: 'Hard Techno Nation', src: '/audio/hard-techno-nation.mp3' },
+    ],
+  },
 ]
 
+function getInitialMusic() {
+  const params = new URLSearchParams(window.location.search)
+  const pathTrack = window.location.pathname.match(/\/music\/([^/]+)/)?.[1]
+  const requestedPlaylist = params.get('playlist')
+  const requestedTrack = params.get('track') || pathTrack
+  let playlistIndex = Math.max(0, playlists.findIndex((playlist) => playlist.id === requestedPlaylist || playlist.tracks.some((track) => track.id === requestedTrack)))
+  const trackIndex = Math.max(0, playlists[playlistIndex].tracks.findIndex((track) => track.id === requestedTrack))
+  return { playlistIndex, trackIndex }
+}
+
 export default function SpatialApp() {
+  const initialMusic = useRef(getInitialMusic())
   const sceneRef = useRef(null)
   const audioRef = useRef(null)
   const userPausedRef = useRef(false)
@@ -24,10 +48,13 @@ export default function SpatialApp() {
   const [loaded, setLoaded] = useState(false)
   const [cinematic, setCinematic] = useState(() => new URLSearchParams(window.location.search).get('mode') === 'cinematic')
   const [audioPlaying, setAudioPlaying] = useState(false)
-  const [trackIndex, setTrackIndex] = useState(0)
+  const [playlistIndex, setPlaylistIndex] = useState(initialMusic.current.playlistIndex)
+  const [trackIndex, setTrackIndex] = useState(initialMusic.current.trackIndex)
+  const [shareStatus, setShareStatus] = useState('')
   const [directorMode, setDirectorMode] = useState(() => new URLSearchParams(window.location.search).get('mode') !== 'cinematic')
   const [playback, setPlayback] = useState({ current: 0, duration: 0 })
-  const currentTrack = tracks[trackIndex]
+  const currentPlaylist = playlists[playlistIndex]
+  const currentTrack = currentPlaylist.tracks[trackIndex]
   const handleReady = useCallback(() => setLoaded(true), [])
 
   useEffect(() => {
@@ -85,7 +112,7 @@ export default function SpatialApp() {
     const audio = audioRef.current
     if (!audio || userPausedRef.current) return
     void audio.play().catch(() => setAudioPlaying(false))
-  }, [trackIndex])
+  }, [playlistIndex, trackIndex])
 
   const chooseView = useCallback((view) => {
     setCinematic(false)
@@ -159,8 +186,33 @@ export default function SpatialApp() {
   }, [])
 
   const playNextTrack = useCallback(() => {
-    setTrackIndex((current) => (current + 1) % tracks.length)
+    if (trackIndex + 1 < currentPlaylist.tracks.length) setTrackIndex(trackIndex + 1)
+    else {
+      setPlaylistIndex((playlist) => (playlist + 1) % playlists.length)
+      setTrackIndex(0)
+    }
+  }, [currentPlaylist.tracks.length, trackIndex])
+
+  const choosePlaylist = useCallback((event) => {
+    setPlaylistIndex(Number(event.target.value))
+    setTrackIndex(0)
   }, [])
+
+  const shareTrack = useCallback(async () => {
+    const path = currentTrack.share || `/spatial/?playlist=${currentPlaylist.id}&track=${currentTrack.id}`
+    const url = new URL(path, window.location.origin).href
+    const data = { title: `${currentTrack.title} — AORB`, text: `Listen to ${currentTrack.title} in AORB Spatial 360.`, url }
+    try {
+      if (navigator.share) await navigator.share(data)
+      else {
+        await navigator.clipboard.writeText(url)
+        setShareStatus('Link copied')
+        window.setTimeout(() => setShareStatus(''), 1800)
+      }
+    } catch {
+      // The native share sheet may be dismissed without choosing a destination.
+    }
+  }, [currentPlaylist.id, currentTrack])
 
   return (
     <main className="spatial-shell">
@@ -183,11 +235,18 @@ export default function SpatialApp() {
       </header>
 
       <section className={audioPlaying ? 'now-playing now-playing--active' : 'now-playing'} aria-label="AORB techno player">
+        <label className="playlist-selector">
+          <ListMusic size={14} />
+          <span>Playlist</span>
+          <select value={playlistIndex} onChange={choosePlaylist} aria-label="Select music playlist">
+            {playlists.map((playlist, index) => <option key={playlist.id} value={index}>{playlist.title}</option>)}
+          </select>
+        </label>
         <button className="now-playing__play" type="button" onClick={toggleAudio} aria-label={audioPlaying ? 'Pause music' : 'Play music'}>
           {audioPlaying ? <Pause size={18} /> : <Play size={18} />}
         </button>
         <div className="now-playing__meta">
-          <span>Transmission {String(trackIndex + 1).padStart(2, '0')} / {String(tracks.length).padStart(2, '0')} · Audio reactive</span>
+          <span>{currentPlaylist.title} · {String(trackIndex + 1).padStart(2, '0')} / {String(currentPlaylist.tracks.length).padStart(2, '0')}</span>
           <strong>{currentTrack.title}</strong>
         </div>
         <div className="now-playing__spectrum" aria-hidden="true">
@@ -195,6 +254,9 @@ export default function SpatialApp() {
         </div>
         <button className="now-playing__next" type="button" onClick={playNextTrack} aria-label="Play next track">
           <SkipForward size={17} />
+        </button>
+        <button className="now-playing__share" type="button" onClick={shareTrack} aria-label={`Share ${currentTrack.title}`} title={shareStatus || 'Share track'}>
+          <Share2 size={16} />
         </button>
         <input className="now-playing__progress" type="range" min="0" max={playback.duration || 0} step="0.1" value={Math.min(playback.current, playback.duration || 0)} onChange={seekAudio} aria-label="Track progress" />
       </section>

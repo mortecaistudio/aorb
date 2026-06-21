@@ -175,7 +175,7 @@ button, a { font: inherit; }
   min-height: 62px;
   padding: 8px 8px 11px;
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) 72px 36px;
+  grid-template-columns: 44px minmax(0, 1fr) 58px 32px 32px;
   align-items: center;
   gap: 10px;
   border: 1px solid rgba(255, 255, 255, .14);
@@ -195,6 +195,11 @@ button, a { font: inherit; }
 .now-playing__play { width: 44px; height: 44px; background: #7c3aed; box-shadow: 0 0 24px rgba(124, 58, 237, .38); }
 .now-playing__next { width: 36px; height: 36px; color: rgba(255, 255, 255, .58) !important; background: transparent; }
 .now-playing__next:hover { color: #b7ff00 !important; }
+.now-playing__share { width: 32px; height: 36px; color: rgba(255, 255, 255, .58) !important; background: transparent; }
+.now-playing__share:hover { color: #00d9ff !important; }
+.playlist-selector { position: absolute; left: -1px; bottom: calc(100% - 1px); min-width: 215px; height: 30px; padding: 0 9px; display: flex; align-items: center; gap: 7px; border: 1px solid rgba(255, 255, 255, .14); color: rgba(255, 255, 255, .52); background: rgba(6, 8, 14, .88); backdrop-filter: blur(18px); }
+.playlist-selector span { font: 500 .52rem/1 'IBM Plex Mono', monospace; letter-spacing: .1em; text-transform: uppercase; }
+.playlist-selector select { min-width: 0; flex: 1; border: 0; outline: 0; color: #b7ff00; background: transparent; font: 500 .58rem/1 'IBM Plex Mono', monospace; text-transform: uppercase; cursor: pointer; }
 .now-playing__meta { min-width: 0; display: grid; gap: 5px; }
 .now-playing__meta span { color: #b7ff00; font: 500 .55rem/1 'IBM Plex Mono', monospace; letter-spacing: .11em; text-transform: uppercase; }
 .now-playing__meta strong { overflow: hidden; color: #fff; font: 600 .75rem/1.1 'Space Grotesk', sans-serif; text-overflow: ellipsis; white-space: nowrap; }
@@ -352,7 +357,8 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
   .back-link { width: 38px; min-height: 38px; justify-content: center; font-size: 0; }
   .audio-toggle { width: 38px; min-height: 38px; padding: 0; justify-content: center; }
   .audio-toggle span { display: none; }
-  .now-playing { left: 12px; bottom: 68px; width: calc(100% - 24px); min-height: 48px; grid-template-columns: 36px minmax(0, 1fr) 58px 32px; gap: 8px; padding: 6px; }
+  .now-playing { left: 12px; bottom: 68px; width: calc(100% - 24px); min-height: 48px; grid-template-columns: 36px minmax(0, 1fr) 42px 28px 28px; gap: 5px; padding: 6px; }
+  .playlist-selector { width: 100%; min-width: 0; }
   .now-playing__play { width: 36px; height: 36px; }
   .now-playing__meta span { font-size: .5rem; }
   .now-playing__meta strong { font-size: .68rem; }

@@ -9,6 +9,7 @@ export default defineConfig({
       input: {
         main: resolve(import.meta.dirname, 'index.html'),
         spatial: resolve(import.meta.dirname, 'spatial/index.html'),
+        neonHaloDrift: resolve(import.meta.dirname, 'spatial/music/neon-halo-drift/index.html'),
       },
     },
   },
