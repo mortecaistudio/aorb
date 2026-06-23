@@ -362,7 +362,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .back-link { width: 38px; min-height: 38px; justify-content: center; font-size: 0; }
   .audio-toggle { width: 38px; min-height: 38px; padding: 0; justify-content: center; }
   .audio-toggle span { display: none; }
-  .now-playing { left: 12px; bottom: calc(68px + env(safe-area-inset-bottom)); width: calc(100% - 24px); min-height: 50px; grid-template-columns: 38px minmax(0, 1fr) 32px 32px 32px; gap: 5px; padding: 6px; }
+  .now-playing { left: 12px; bottom: calc(78px + env(safe-area-inset-bottom)); width: calc(100% - 24px); min-height: 50px; grid-template-columns: 38px minmax(0, 1fr) 32px 32px 32px; gap: 5px; padding: 6px; }
   .music-selectors { width: calc(100% + 2px); }
   .music-selectors label { height: 32px; padding: 0 6px; }
   .music-selectors span { display: none; }
@@ -379,7 +379,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .spatial-copy { top: 86px; left: 18px; width: 85vw; }
   .spatial-copy h1 { font-size: clamp(2.35rem, 11vw, 3.25rem); line-height: .88; }
   .spatial-copy p { width: 78vw; margin-top: 13px; font-size: .69rem; line-height: 1.45; }
-  .view-controls { top: auto; right: auto; left: 12px; bottom: calc(168px + env(safe-area-inset-bottom)); display: grid; grid-template-columns: repeat(3, 44px); transform: none; }
+  .view-controls { top: auto; right: auto; left: 12px; bottom: calc(194px + env(safe-area-inset-bottom)); display: grid; grid-template-columns: repeat(3, 44px); transform: none; }
   .view-controls > span { display: none; }
   .view-controls button { width: 44px; min-height: 44px; padding: 0; justify-content: center; }
   .view-controls button span { display: none; }
@@ -393,8 +393,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 
 @media (max-width: 760px) and (max-height: 700px) {
   .mode-switch { top: calc(68px + env(safe-area-inset-top)); }
-  .view-controls { bottom: calc(158px + env(safe-area-inset-bottom)); }
-  .now-playing { bottom: calc(64px + env(safe-area-inset-bottom)); }
+  .view-controls { bottom: calc(184px + env(safe-area-inset-bottom)); }
+  .now-playing { bottom: calc(74px + env(safe-area-inset-bottom)); }
   .music-selectors label { height: 28px; }
 }
 

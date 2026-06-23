@@ -700,6 +700,10 @@ const SpatialScene = forwardRef(function SpatialScene({ onReady }, ref) {
     }
     const connectAudio = (audio) => {
       if (!audio) return
+      // Mobile Safari is more reliable when the media element plays directly.
+      // The scene keeps its lightweight fallback pulse without routing audio
+      // through an AudioContext, avoiding buffer loops under WebGL pressure.
+      if (isMobile) return
       if (audioContext) {
         void audioContext.resume()
         return

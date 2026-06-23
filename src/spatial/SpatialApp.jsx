@@ -48,6 +48,7 @@ export default function SpatialApp() {
   const [loaded, setLoaded] = useState(false)
   const [cinematic, setCinematic] = useState(() => new URLSearchParams(window.location.search).get('mode') === 'cinematic')
   const [audioPlaying, setAudioPlaying] = useState(false)
+  const [audioMuted, setAudioMuted] = useState(false)
   const [playlistIndex, setPlaylistIndex] = useState(initialMusic.current.playlistIndex)
   const [trackIndex, setTrackIndex] = useState(initialMusic.current.trackIndex)
   const [shareStatus, setShareStatus] = useState('')
@@ -74,6 +75,7 @@ export default function SpatialApp() {
     audio.volume = 0.84
 
     const syncPlaying = () => setAudioPlaying(!audio.paused)
+    const syncMuted = () => setAudioMuted(audio.muted)
     const syncPlayback = () => setPlayback({ current: audio.currentTime || 0, duration: audio.duration || 0 })
     const tryStart = async () => {
       if (userPausedRef.current) return
@@ -83,15 +85,17 @@ export default function SpatialApp() {
         // Browsers unlock audible autoplay after the first user gesture.
       }
     }
-    const unlock = () => {
-      sceneRef.current?.connectAudio(audio)
-      void tryStart()
+    const unlock = (event) => {
       window.removeEventListener('pointerdown', unlock)
       window.removeEventListener('keydown', unlock)
+      if (event.target instanceof Element && event.target.closest('[data-audio-control]')) return
+      sceneRef.current?.connectAudio(audio)
+      void tryStart()
     }
 
     audio.addEventListener('play', syncPlaying)
     audio.addEventListener('pause', syncPlaying)
+    audio.addEventListener('volumechange', syncMuted)
     audio.addEventListener('timeupdate', syncPlayback)
     audio.addEventListener('loadedmetadata', syncPlayback)
     window.addEventListener('pointerdown', unlock, { passive: true })
@@ -102,6 +106,7 @@ export default function SpatialApp() {
       audio.pause()
       audio.removeEventListener('play', syncPlaying)
       audio.removeEventListener('pause', syncPlaying)
+      audio.removeEventListener('volumechange', syncMuted)
       audio.removeEventListener('timeupdate', syncPlayback)
       audio.removeEventListener('loadedmetadata', syncPlayback)
       window.removeEventListener('pointerdown', unlock)
@@ -186,6 +191,23 @@ export default function SpatialApp() {
     }
   }, [])
 
+  const toggleSound = useCallback(async () => {
+    const audio = audioRef.current
+    if (!audio) return
+    if (audio.paused) {
+      userPausedRef.current = false
+      audio.muted = false
+      sceneRef.current?.connectAudio(audio)
+      try {
+        await audio.play()
+      } catch {
+        setAudioPlaying(false)
+      }
+      return
+    }
+    audio.muted = !audio.muted
+  }, [])
+
   const playRandomTrack = useCallback(() => {
     const candidates = playlists.flatMap((playlist, nextPlaylistIndex) => playlist.tracks.map((track, nextTrackIndex) => ({ track, nextPlaylistIndex, nextTrackIndex })))
     const currentId = currentTrack.id
@@ -247,9 +269,9 @@ export default function SpatialApp() {
         <a className="spatial-logo" href="/" aria-label="Return to AORB home">AORB<span>.</span></a>
         <div className={directorMode ? 'spatial-status spatial-status--director' : 'spatial-status'}><i /> {directorMode ? 'Live director · audio reactive' : 'Interactive spatial scene'}</div>
         <div className="header-actions">
-          <button className={audioPlaying ? 'audio-toggle audio-toggle--playing' : 'audio-toggle'} type="button" onClick={toggleAudio} aria-label={audioPlaying ? `Pause ${currentTrack.title}` : `Play ${currentTrack.title}`} aria-pressed={audioPlaying} title={currentTrack.title}>
-            {audioPlaying ? <Volume2 size={17} /> : <VolumeX size={17} />}
-            <span>{audioPlaying ? 'Sound on' : 'Start sound'}</span>
+          <button className={audioPlaying && !audioMuted ? 'audio-toggle audio-toggle--playing' : 'audio-toggle'} data-audio-control type="button" onClick={toggleSound} aria-label={!audioPlaying ? `Start ${currentTrack.title}` : audioMuted ? 'Unmute music' : 'Mute music'} aria-pressed={audioMuted} title={!audioPlaying ? 'Start sound' : audioMuted ? 'Unmute' : 'Mute'}>
+            {audioPlaying && !audioMuted ? <Volume2 size={17} /> : <VolumeX size={17} />}
+            <span>{!audioPlaying ? 'Start sound' : audioMuted ? 'Sound off' : 'Sound on'}</span>
           </button>
           <a className="back-link" href="/"><ArrowLeft size={17} /> Back to site</a>
         </div>
@@ -272,7 +294,7 @@ export default function SpatialApp() {
             </select>
           </label>
         </div>
-        <button className="now-playing__play" type="button" onClick={toggleAudio} aria-label={audioPlaying ? 'Pause music' : 'Play music'}>
+        <button className="now-playing__play" data-audio-control type="button" onClick={toggleAudio} aria-label={audioPlaying ? 'Pause music' : 'Play music'}>
           {audioPlaying ? <Pause size={18} /> : <Play size={18} />}
         </button>
         <div className="now-playing__meta">
