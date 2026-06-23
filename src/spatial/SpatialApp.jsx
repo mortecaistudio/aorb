@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ArrowLeft, Box, Clapperboard, Expand, Eye, Image, ListMusic, Pause, Play, Rotate3D, Share2, SkipForward, Volume2, VolumeX } from 'lucide-react'
+import { ArrowLeft, Box, Clapperboard, Expand, Eye, Image, ListMusic, Music2, Pause, Play, Rotate3D, Share2, Shuffle, SkipForward, Volume2, VolumeX } from 'lucide-react'
 import SpatialScene from './SpatialScene.jsx'
 
 const views = [
@@ -14,14 +14,14 @@ const playlists = [
     title: 'Night Drive Phonk',
     tracks: [
       { id: 'neon-halo-drift', title: 'Neon Halo Drift', src: '/audio/neon-halo-drift.mp3', share: '/spatial/music/neon-halo-drift/' },
-      { id: 'distant-signal', title: 'Distant Signal', src: '/audio/neon-insurrection.mp3' },
-      { id: 'void-protocol', title: 'Void Protocol', src: '/audio/void-protocol.mp3' },
     ],
   },
   {
     id: 'rebel-techno',
     title: 'Rebel Techno',
     tracks: [
+      { id: 'distant-signal', title: 'Distant Signal', src: '/audio/neon-insurrection.mp3' },
+      { id: 'void-protocol', title: 'Void Protocol', src: '/audio/void-protocol.mp3' },
       { id: 'orbital-rebellion', title: 'Orbital Rebellion', src: '/audio/orbital-rebellion.mp3' },
       { id: 'hard-techno-nation', title: 'Hard Techno Nation', src: '/audio/hard-techno-nation.mp3' },
     ],
@@ -51,6 +51,7 @@ export default function SpatialApp() {
   const [playlistIndex, setPlaylistIndex] = useState(initialMusic.current.playlistIndex)
   const [trackIndex, setTrackIndex] = useState(initialMusic.current.trackIndex)
   const [shareStatus, setShareStatus] = useState('')
+  const [shuffleMode, setShuffleMode] = useState(false)
   const [directorMode, setDirectorMode] = useState(() => new URLSearchParams(window.location.search).get('mode') !== 'cinematic')
   const [playback, setPlayback] = useState({ current: 0, duration: 0 })
   const currentPlaylist = playlists[playlistIndex]
@@ -185,17 +186,34 @@ export default function SpatialApp() {
     }
   }, [])
 
+  const playRandomTrack = useCallback(() => {
+    const candidates = playlists.flatMap((playlist, nextPlaylistIndex) => playlist.tracks.map((track, nextTrackIndex) => ({ track, nextPlaylistIndex, nextTrackIndex })))
+    const currentId = currentTrack.id
+    const alternatives = candidates.filter(({ track }) => track.id !== currentId)
+    const next = alternatives[Math.floor(Math.random() * alternatives.length)] || candidates[0]
+    setPlaylistIndex(next.nextPlaylistIndex)
+    setTrackIndex(next.nextTrackIndex)
+  }, [currentTrack.id])
+
   const playNextTrack = useCallback(() => {
+    if (shuffleMode) {
+      playRandomTrack()
+      return
+    }
     if (trackIndex + 1 < currentPlaylist.tracks.length) setTrackIndex(trackIndex + 1)
     else {
       setPlaylistIndex((playlist) => (playlist + 1) % playlists.length)
       setTrackIndex(0)
     }
-  }, [currentPlaylist.tracks.length, trackIndex])
+  }, [currentPlaylist.tracks.length, playRandomTrack, shuffleMode, trackIndex])
 
   const choosePlaylist = useCallback((event) => {
     setPlaylistIndex(Number(event.target.value))
     setTrackIndex(0)
+  }, [])
+
+  const chooseTrack = useCallback((event) => {
+    setTrackIndex(Number(event.target.value))
   }, [])
 
   const shareTrack = useCallback(async () => {
@@ -238,13 +256,22 @@ export default function SpatialApp() {
       </header>
 
       <section className={audioPlaying ? 'now-playing now-playing--active' : 'now-playing'} aria-label="AORB techno player">
-        <label className="playlist-selector">
-          <ListMusic size={14} />
-          <span>Playlist</span>
-          <select value={playlistIndex} onChange={choosePlaylist} aria-label="Select music playlist">
-            {playlists.map((playlist, index) => <option key={playlist.id} value={index}>{playlist.title}</option>)}
-          </select>
-        </label>
+        <div className="music-selectors">
+          <label>
+            <ListMusic size={14} />
+            <span>Playlist</span>
+            <select value={playlistIndex} onChange={choosePlaylist} aria-label="Select music playlist">
+              {playlists.map((playlist, index) => <option key={playlist.id} value={index}>{playlist.title}</option>)}
+            </select>
+          </label>
+          <label>
+            <Music2 size={14} />
+            <span>Track</span>
+            <select value={trackIndex} onChange={chooseTrack} aria-label="Select track">
+              {currentPlaylist.tracks.map((track, index) => <option key={track.id} value={index}>{track.title}</option>)}
+            </select>
+          </label>
+        </div>
         <button className="now-playing__play" type="button" onClick={toggleAudio} aria-label={audioPlaying ? 'Pause music' : 'Play music'}>
           {audioPlaying ? <Pause size={18} /> : <Play size={18} />}
         </button>
@@ -255,6 +282,9 @@ export default function SpatialApp() {
         <div className="now-playing__spectrum" aria-hidden="true">
           {[0, 1, 2, 3, 4, 5, 6, 7, 8].map((bar) => <i key={bar} style={{ '--bar': bar }} />)}
         </div>
+        <button className={shuffleMode ? 'now-playing__shuffle active' : 'now-playing__shuffle'} type="button" onClick={() => setShuffleMode((current) => !current)} aria-label={shuffleMode ? 'Disable random mix' : 'Enable random mix'} aria-pressed={shuffleMode} title="Random mix">
+          <Shuffle size={16} />
+        </button>
         <button className="now-playing__next" type="button" onClick={playNextTrack} aria-label="Play next track">
           <SkipForward size={17} />
         </button>
@@ -269,14 +299,16 @@ export default function SpatialApp() {
         <button type="button" className={!cinematic ? 'active' : ''} onClick={() => chooseMode(false)}><Box size={16} /> Spatial 360</button>
       </div>
 
-      <aside className="view-controls" aria-label="Camera views">
-        <span>Camera</span>
-        {views.map(([view, label]) => (
-          <button key={view} className={activeView === view ? 'active' : ''} type="button" onClick={() => chooseView(view)}>
-            <Eye size={16} /> {label}
-          </button>
-        ))}
-      </aside>
+      {!cinematic && (
+        <aside className="view-controls" aria-label="Camera views">
+          <span>Camera</span>
+          {views.map(([view, label]) => (
+            <button key={view} className={activeView === view ? 'active' : ''} type="button" onClick={() => chooseView(view)}>
+              <Eye size={16} /> {label}
+            </button>
+          ))}
+        </aside>
+      )}
 
       <div className="spatial-toolbar">
         <button className={directorMode ? 'active' : ''} type="button" onClick={toggleDirector} aria-pressed={directorMode}>

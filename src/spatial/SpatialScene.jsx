@@ -115,26 +115,26 @@ function addEuFlag(parent, x, y, z) {
   parent.add(group)
 }
 
-function addChamber(scene) {
+function addChamber(scene, compact = false) {
   const chamber = new THREE.Group()
   const floorMaterial = new THREE.MeshPhysicalMaterial({ color: 0x0b1019, roughness: 0.2, metalness: 0.62, clearcoat: 1, clearcoatRoughness: 0.16 })
-  const floor = mesh(new THREE.CylinderGeometry(8.5, 8.5, 0.22, 72), floorMaterial, [0, -0.18, 0])
+  const floor = mesh(new THREE.CylinderGeometry(8.5, 8.5, 0.22, compact ? 40 : 72), floorMaterial, [0, -0.18, 0])
   chamber.add(floor)
 
   const ring = mesh(new THREE.TorusGeometry(7.5, 0.055, 8, 96), new THREE.MeshStandardMaterial({ color: VIOLET, emissive: VIOLET, emissiveIntensity: 2.2 }), [0, 0.02, 0])
   ring.rotation.x = Math.PI / 2
   chamber.add(ring)
 
-  const wall = mesh(new THREE.CylinderGeometry(8.35, 8.35, 5.8, 72, 1, true, 0.25, Math.PI * 1.82), material(0x101823, 0.78, 0.2), [0, 2.65, 0])
+  const wall = mesh(new THREE.CylinderGeometry(8.35, 8.35, 5.8, compact ? 40 : 72, 1, true, 0.25, Math.PI * 1.82), material(0x101823, 0.78, 0.2), [0, 2.65, 0])
   wall.material.side = THREE.BackSide
   wall.rotation.y = -0.1
   chamber.add(wall)
 
   const deskMat = material(0x20171a, 0.42, 0.28)
   const seatMat = material(0x182b3f, 0.72, 0.06)
-  for (let row = 0; row < 4; row += 1) {
+  for (let row = 0; row < (compact ? 3 : 4); row += 1) {
     const radius = 3.8 + row * 0.85
-    const count = 17 + row * 5
+    const count = compact ? 10 + row * 4 : 17 + row * 5
     for (let index = 0; index < count; index += 1) {
       const angle = -1.18 + (index / (count - 1)) * 2.36
       const x = Math.sin(angle) * radius
@@ -151,8 +151,9 @@ function addChamber(scene) {
   const screen = mesh(new THREE.PlaneGeometry(4.75, 1.72), new THREE.MeshBasicMaterial({ map: createAorbTexture() }), [0, 3.7, -6.44])
   chamber.add(screenFrame, screen)
 
-  for (let index = 0; index < 7; index += 1) {
-    addEuFlag(chamber, -3.25 + index * 1.08, 1.5, -6.25)
+  const flagCount = compact ? 3 : 7
+  for (let index = 0; index < flagCount; index += 1) {
+    addEuFlag(chamber, -(flagCount - 1) * 0.54 + index * 1.08, 1.5, -6.25)
   }
 
   const dais = mesh(new THREE.CylinderGeometry(1.15, 1.35, 0.42, 40), material(0x211922, 0.38, 0.36), [0, 0.12, -2.4])
@@ -161,13 +162,13 @@ function addChamber(scene) {
   return { ring, screenFrame, screen, dais }
 }
 
-function addTechnoRig(scene) {
+function addTechnoRig(scene, compact = false) {
   const rig = new THREE.Group()
   const beams = []
   const pulseRings = []
   const equalizerBars = []
   const ceilingRings = []
-  const colors = [VIOLET, CYAN, RED, VIOLET, CYAN, RED]
+  const colors = (compact ? [VIOLET, CYAN, RED, VIOLET] : [VIOLET, CYAN, RED, VIOLET, CYAN, RED])
 
   colors.forEach((color, index) => {
     const angle = (index / colors.length) * Math.PI * 2
@@ -186,7 +187,7 @@ function addTechnoRig(scene) {
     rig.add(beam)
   })
 
-  ;[1.55, 2.25, 3.1, 4.15, 5.35].forEach((radius, index) => {
+  ;(compact ? [1.55, 2.5, 4.15] : [1.55, 2.25, 3.1, 4.15, 5.35]).forEach((radius, index) => {
     const color = index % 2 ? CYAN : VIOLET
     const ringMaterial = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.2, blending: THREE.AdditiveBlending, depthWrite: false })
     const floorRing = mesh(new THREE.TorusGeometry(radius, 0.018, 6, 96), ringMaterial, [0, 0.015 + index * 0.002, -0.6])
@@ -195,8 +196,9 @@ function addTechnoRig(scene) {
     rig.add(floorRing)
   })
 
-  for (let index = 0; index < 28; index += 1) {
-    const ratio = index / 27
+  const barCount = compact ? 14 : 28
+  for (let index = 0; index < barCount; index += 1) {
+    const ratio = index / (barCount - 1)
     const color = new THREE.Color().setHSL(0.52 + ratio * 0.24, 0.9, 0.56)
     const barMaterial = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 2.1, roughness: 0.24, metalness: 0.32 })
     const bar = mesh(new THREE.BoxGeometry(0.085, 1, 0.09), barMaterial, [-2.75 + ratio * 5.5, 1.04, -5.82])
@@ -205,7 +207,7 @@ function addTechnoRig(scene) {
     rig.add(bar)
   }
 
-  ;[2.5, 4.1, 6.1].forEach((radius, index) => {
+  ;(compact ? [2.5, 4.1] : [2.5, 4.1, 6.1]).forEach((radius, index) => {
     const color = index === 1 ? RED : index === 2 ? CYAN : VIOLET
     const haloMaterial = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.34, blending: THREE.AdditiveBlending, depthWrite: false })
     const halo = mesh(new THREE.TorusGeometry(radius, 0.026 + index * 0.008, 8, 120), haloMaterial, [0, 5.45 + index * 0.22, -1.05])
@@ -236,15 +238,16 @@ function addTechnoRig(scene) {
   return { rig, beams, pulseRings, equalizerBars, ceilingRings, scannerRing, starHalo }
 }
 
-function addDigitalArchitecture(scene) {
+function addDigitalArchitecture(scene, compact = false) {
   const architecture = new THREE.Group()
+  const nodeCount = compact ? 32 : 64
   const nodes = new THREE.InstancedMesh(
     new THREE.BoxGeometry(0.23, 0.055, 0.025),
     new THREE.MeshStandardMaterial({ color: 0x80e9ff, emissive: CYAN, emissiveIntensity: 1.4, roughness: 0.32, metalness: 0.62 }),
-    64,
+    nodeCount,
   )
   const transform = new THREE.Object3D()
-  for (let index = 0; index < 64; index += 1) {
+  for (let index = 0; index < nodeCount; index += 1) {
     const band = Math.floor(index / 16)
     const slot = index % 16
     const angle = -1.2 + (slot / 15) * 2.4
@@ -263,7 +266,7 @@ function addDigitalArchitecture(scene) {
 
   const portalMaterial = new THREE.MeshBasicMaterial({ color: VIOLET, transparent: true, opacity: 0.3, blending: THREE.AdditiveBlending, depthWrite: false })
   const portals = []
-  ;[3.15, 3.65, 4.15].forEach((radius, index) => {
+  ;(compact ? [3.15, 3.85] : [3.15, 3.65, 4.15]).forEach((radius, index) => {
     const portal = mesh(new THREE.TorusGeometry(radius, 0.018 + index * 0.007, 6, 128, Math.PI), portalMaterial.clone(), [0, 0.15, -6.16])
     portal.rotation.z = Math.PI / 2
     portals.push(portal)
@@ -280,9 +283,9 @@ function addDigitalArchitecture(scene) {
   return { architecture, nodes, portals, horizon }
 }
 
-function addReactiveStage(scene) {
+function addReactiveStage(scene, compact = false) {
   const stage = new THREE.Group()
-  const grid = new THREE.GridHelper(16, 48, CYAN, VIOLET)
+  const grid = new THREE.GridHelper(16, compact ? 28 : 48, CYAN, VIOLET)
   grid.position.y = -0.045
   grid.position.z = -0.6
   grid.material.transparent = true
@@ -292,7 +295,7 @@ function addReactiveStage(scene) {
   stage.add(grid)
 
   const shockwaves = []
-  for (let index = 0; index < 5; index += 1) {
+  for (let index = 0; index < (compact ? 3 : 5); index += 1) {
     const color = index % 2 ? CYAN : VIOLET
     const surface = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false })
     const wave = mesh(new THREE.TorusGeometry(1, 0.028, 6, 112), surface, [0, 0.035 + index * 0.002, -0.55])
@@ -303,7 +306,7 @@ function addReactiveStage(scene) {
     stage.add(wave)
   }
 
-  const hologramMaterial = new THREE.MeshPhysicalMaterial({
+  const hologramMaterial = new (compact ? THREE.MeshStandardMaterial : THREE.MeshPhysicalMaterial)({
     color: VIOLET,
     emissive: VIOLET,
     emissiveIntensity: 1.1,
@@ -311,15 +314,16 @@ function addReactiveStage(scene) {
     opacity: 0.11,
     roughness: 0.08,
     metalness: 0.2,
-    transmission: 0.35,
+    ...(compact ? {} : { transmission: 0.35 }),
     depthWrite: false,
   })
   const hologram = mesh(new THREE.CylinderGeometry(0.82, 1.12, 1.9, 48, 1, true), hologramMaterial, [0, 1.02, -2.4])
   stage.add(hologram)
 
   const orbiters = new THREE.Group()
-  for (let index = 0; index < 18; index += 1) {
-    const angle = (index / 18) * Math.PI * 2
+  const orbiterCount = compact ? 10 : 18
+  for (let index = 0; index < orbiterCount; index += 1) {
+    const angle = (index / orbiterCount) * Math.PI * 2
     const shard = mesh(
       new THREE.OctahedronGeometry(0.025 + (index % 3) * 0.007, 0),
       new THREE.MeshBasicMaterial({ color: index % 4 === 0 ? GOLD : CYAN, transparent: true, opacity: 0.7 }),
@@ -536,10 +540,11 @@ function createUrsula() {
   return group
 }
 
-function addAtmosphere(scene) {
+function addAtmosphere(scene, compact = false) {
   const geometry = new THREE.BufferGeometry()
-  const positions = new Float32Array(420 * 3)
-  for (let index = 0; index < 420; index += 1) {
+  const particleCount = compact ? 160 : 420
+  const positions = new Float32Array(particleCount * 3)
+  for (let index = 0; index < particleCount; index += 1) {
     positions[index * 3] = (Math.random() - 0.5) * 17
     positions[index * 3 + 1] = Math.random() * 7
     positions[index * 3 + 2] = (Math.random() - 0.5) * 14
@@ -576,7 +581,7 @@ const SpatialScene = forwardRef(function SpatialScene({ onReady }, ref) {
     scene.background = new THREE.Color(0x05070c)
     scene.fog = new THREE.FogExp2(0x07101d, 0.036)
 
-    const isMobile = mount.clientWidth < 700
+    const isMobile = mount.clientWidth < 760 || window.matchMedia('(pointer: coarse)').matches
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     const resolveView = (name) => {
       const base = cameraViews[name] || cameraViews.free
@@ -591,14 +596,14 @@ const SpatialScene = forwardRef(function SpatialScene({ onReady }, ref) {
     const camera = new THREE.PerspectiveCamera(isMobile ? 50 : 42, mount.clientWidth / mount.clientHeight, 0.1, 60)
     camera.position.copy(initialView.position)
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' })
+    const renderer = new THREE.WebGLRenderer({ antialias: !isMobile, powerPreference: 'high-performance', stencil: false, depth: true })
     renderer.setSize(mount.clientWidth, mount.clientHeight)
-    let renderScale = Math.min(window.devicePixelRatio, window.innerWidth < 700 ? 1.22 : 1.55)
+    let renderScale = Math.min(window.devicePixelRatio, isMobile ? 1 : 1.55)
     renderer.setPixelRatio(renderScale)
     renderer.outputColorSpace = THREE.SRGBColorSpace
     renderer.toneMapping = THREE.ACESFilmicToneMapping
     renderer.toneMappingExposure = 0.88
-    renderer.shadowMap.enabled = true
+    renderer.shadowMap.enabled = !isMobile
     renderer.shadowMap.type = THREE.PCFShadowMap
     mount.appendChild(renderer.domElement)
 
@@ -630,7 +635,7 @@ const SpatialScene = forwardRef(function SpatialScene({ onReady }, ref) {
     scene.add(new THREE.HemisphereLight(0x8bbcff, 0x160d22, 1.25))
     const key = new THREE.SpotLight(0xfff4ea, 62, 18, Math.PI / 5, 0.62, 1.5)
     key.position.set(0, 8, 5)
-    key.castShadow = true
+    key.castShadow = !isMobile
     key.shadow.mapSize.set(isMobile ? 512 : 1024, isMobile ? 512 : 1024)
     scene.add(key)
     const violet = new THREE.PointLight(VIOLET, 38, 12, 1.5)
@@ -641,14 +646,14 @@ const SpatialScene = forwardRef(function SpatialScene({ onReady }, ref) {
     red.position.set(0, 4, -5)
     scene.add(violet, cyan, red)
 
-    const chamberFx = addChamber(scene)
-    const technoFx = addTechnoRig(scene)
-    const digitalFx = addDigitalArchitecture(scene)
-    const reactiveFx = addReactiveStage(scene)
+    const chamberFx = addChamber(scene, isMobile)
+    const technoFx = addTechnoRig(scene, isMobile)
+    const digitalFx = addDigitalArchitecture(scene, isMobile)
+    const reactiveFx = addReactiveStage(scene, isMobile)
     const rebel = createRebel()
     const ursula = createUrsula()
     scene.add(rebel, ursula)
-    const atmosphere = addAtmosphere(scene)
+    const atmosphere = addAtmosphere(scene, isMobile)
 
     let animationFrame
     let desiredPosition = initialView.position.clone()

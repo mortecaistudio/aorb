@@ -176,7 +176,7 @@ button, a { font: inherit; }
   min-height: 62px;
   padding: 8px 8px 11px;
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) 58px 32px 32px;
+  grid-template-columns: 44px minmax(70px, 1fr) 48px 32px 32px 32px;
   align-items: center;
   gap: 10px;
   border: 1px solid rgba(255, 255, 255, .14);
@@ -198,9 +198,13 @@ button, a { font: inherit; }
 .now-playing__next:hover { color: #b7ff00 !important; }
 .now-playing__share { width: 32px; height: 36px; color: rgba(255, 255, 255, .58) !important; background: transparent; }
 .now-playing__share:hover { color: #00d9ff !important; }
-.playlist-selector { position: absolute; left: -1px; bottom: calc(100% - 1px); min-width: 215px; height: 30px; padding: 0 9px; display: flex; align-items: center; gap: 7px; border: 1px solid rgba(255, 255, 255, .14); color: rgba(255, 255, 255, .52); background: rgba(6, 8, 14, .88); backdrop-filter: blur(18px); }
-.playlist-selector span { font: 500 .52rem/1 'IBM Plex Mono', monospace; letter-spacing: .1em; text-transform: uppercase; }
-.playlist-selector select { min-width: 0; flex: 1; border: 0; outline: 0; color: #b7ff00; background: transparent; font: 500 .58rem/1 'IBM Plex Mono', monospace; text-transform: uppercase; cursor: pointer; }
+.now-playing__shuffle { width: 32px; height: 36px; color: rgba(255, 255, 255, .58) !important; background: transparent; }
+.now-playing__shuffle:hover, .now-playing__shuffle.active { color: #b7ff00 !important; }
+.music-selectors { position: absolute; left: -1px; bottom: calc(100% - 1px); width: calc(100% + 2px); display: grid; grid-template-columns: 1fr 1.12fr; }
+.music-selectors label { min-width: 0; height: 32px; padding: 0 8px; display: flex; align-items: center; gap: 6px; border: 1px solid rgba(255, 255, 255, .14); color: rgba(255, 255, 255, .52); background: rgba(6, 8, 14, .9); backdrop-filter: blur(18px); }
+.music-selectors label + label { border-left: 0; }
+.music-selectors span { font: 500 .48rem/1 'IBM Plex Mono', monospace; letter-spacing: .08em; text-transform: uppercase; }
+.music-selectors select { min-width: 0; flex: 1; border: 0; outline: 0; color: #b7ff00; background: transparent; font: 500 .54rem/1 'IBM Plex Mono', monospace; text-transform: uppercase; cursor: pointer; }
 .now-playing__meta { min-width: 0; display: grid; gap: 5px; }
 .now-playing__meta span { color: #b7ff00; font: 500 .55rem/1 'IBM Plex Mono', monospace; letter-spacing: .11em; text-transform: uppercase; }
 .now-playing__meta strong { overflow: hidden; color: #fff; font: 600 .75rem/1.1 'Space Grotesk', sans-serif; text-overflow: ellipsis; white-space: nowrap; }
@@ -358,13 +362,15 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .back-link { width: 38px; min-height: 38px; justify-content: center; font-size: 0; }
   .audio-toggle { width: 38px; min-height: 38px; padding: 0; justify-content: center; }
   .audio-toggle span { display: none; }
-  .now-playing { left: 12px; bottom: calc(68px + env(safe-area-inset-bottom)); width: calc(100% - 24px); min-height: 50px; grid-template-columns: 38px minmax(0, 1fr) 40px 32px 32px; gap: 5px; padding: 6px; }
-  .playlist-selector { width: 100%; min-width: 0; }
+  .now-playing { left: 12px; bottom: calc(68px + env(safe-area-inset-bottom)); width: calc(100% - 24px); min-height: 50px; grid-template-columns: 38px minmax(0, 1fr) 32px 32px 32px; gap: 5px; padding: 6px; }
+  .music-selectors { width: calc(100% + 2px); }
+  .music-selectors label { height: 32px; padding: 0 6px; }
+  .music-selectors span { display: none; }
   .now-playing__play { width: 38px; height: 38px; }
-  .now-playing__next, .now-playing__share { width: 32px; height: 40px; }
+  .now-playing__shuffle, .now-playing__next, .now-playing__share { width: 32px; height: 40px; }
   .now-playing__meta span { font-size: .5rem; }
   .now-playing__meta strong { font-size: .68rem; }
-  .now-playing__spectrum { height: 22px; }
+  .now-playing__spectrum { display: none; }
   .mode-switch { top: calc(74px + env(safe-area-inset-top)); bottom: auto; width: calc(100% - 24px); }
   .mode-switch button { min-width: 0; flex: 1; justify-content: center; min-height: 36px; padding: 0 5px; font-size: .54rem; overflow: hidden; white-space: nowrap; }
   .cinematic-layer { background: #05070c url('/assets/aorb-faceoff-mobile.webp') center / cover no-repeat; }
@@ -389,7 +395,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .mode-switch { top: calc(68px + env(safe-area-inset-top)); }
   .view-controls { bottom: calc(158px + env(safe-area-inset-bottom)); }
   .now-playing { bottom: calc(64px + env(safe-area-inset-bottom)); }
-  .playlist-selector { height: 28px; }
+  .music-selectors label { height: 28px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
