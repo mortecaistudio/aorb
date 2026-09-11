@@ -132,7 +132,7 @@ body::before {
 .closing__actions .action { min-width: min(390px, 100%); }
 .closing footer { position: relative; margin: 0 calc(var(--gutter) * -1); padding: 28px var(--gutter); min-height: 100px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; background: var(--violet); color: white; text-align: left; }
 .closing footer p { margin: 0; text-transform: uppercase; font: 11px var(--mono); letter-spacing: .12em; }
-.closing footer > a:last-child { justify-self: end; font: 14px var(--mono); }
+.closing footer > a:last-of-type { justify-self: end; font: 14px var(--mono); }
 
 @keyframes hero-in { from { opacity: 0; transform: scale(1.08); } to { opacity: 1; transform: scale(1.01); } }
 @keyframes float { 50% { transform: translateY(7px); } }
@@ -216,3 +216,5 @@ body::before {
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+.closing footer .footer-credit { grid-column: 1 / -1; justify-self: center; font: 11px/1.5 var(--mono); letter-spacing: .04em; opacity: .85; margin-top: 12px; }

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ArrowLeft, Box, Clapperboard, Expand, Eye, Image, ListMusic, Music2, Pause, Play, Rotate3D, Share2, Shuffle, SkipForward, Volume2, VolumeX } from 'lucide-react'
+import { ArrowLeft, Clapperboard, Expand, Eye, ListMusic, Music2, Pause, Play, Rotate3D, Share2, Shuffle, SkipForward, Volume2, VolumeX } from 'lucide-react'
 import SpatialScene from './SpatialScene.jsx'
 
 const views = [
@@ -46,14 +46,13 @@ export default function SpatialApp() {
   const [autoRotate, setAutoRotate] = useState(false)
   const [activeView, setActiveView] = useState('faceoff')
   const [loaded, setLoaded] = useState(false)
-  const [cinematic, setCinematic] = useState(() => new URLSearchParams(window.location.search).get('mode') === 'cinematic')
   const [audioPlaying, setAudioPlaying] = useState(false)
   const [audioMuted, setAudioMuted] = useState(false)
   const [playlistIndex, setPlaylistIndex] = useState(initialMusic.current.playlistIndex)
   const [trackIndex, setTrackIndex] = useState(initialMusic.current.trackIndex)
   const [shareStatus, setShareStatus] = useState('')
   const [shuffleMode, setShuffleMode] = useState(false)
-  const [directorMode, setDirectorMode] = useState(() => new URLSearchParams(window.location.search).get('mode') !== 'cinematic')
+  const [directorMode, setDirectorMode] = useState(true)
   const [playback, setPlayback] = useState({ current: 0, duration: 0 })
   const currentPlaylist = playlists[playlistIndex]
   const currentTrack = currentPlaylist.tracks[trackIndex]
@@ -121,30 +120,13 @@ export default function SpatialApp() {
   }, [playlistIndex, trackIndex])
 
   const chooseView = useCallback((view) => {
-    setCinematic(false)
     setDirectorMode(false)
     setActiveView(view)
     sceneRef.current?.setDirectorMode(false)
     sceneRef.current?.goTo(view)
   }, [])
 
-  const chooseMode = useCallback((nextCinematic) => {
-    setCinematic(nextCinematic)
-    const url = new URL(window.location.href)
-    url.searchParams.set('mode', nextCinematic ? 'cinematic' : 'spatial')
-    window.history.replaceState({}, '', url)
-    if (nextCinematic) {
-      setAutoRotate(false)
-      setDirectorMode(false)
-      setActiveView('faceoff')
-      sceneRef.current?.setAutoRotate(false)
-      sceneRef.current?.setDirectorMode(false)
-      sceneRef.current?.goTo('faceoff')
-    }
-  }, [])
-
   const toggleRotation = useCallback(() => {
-    setCinematic(false)
     setDirectorMode(false)
     sceneRef.current?.setDirectorMode(false)
     setAutoRotate((current) => {
@@ -154,7 +136,6 @@ export default function SpatialApp() {
   }, [])
 
   const toggleDirector = useCallback(() => {
-    setCinematic(false)
     setAutoRotate(false)
     setDirectorMode((current) => {
       sceneRef.current?.setAutoRotate(false)
@@ -258,12 +239,6 @@ export default function SpatialApp() {
     <main className="spatial-shell">
       <audio ref={audioRef} src={currentTrack.src} autoPlay preload="metadata" playsInline onEnded={playNextTrack} />
       <SpatialScene ref={sceneRef} onReady={handleReady} />
-      <div className={cinematic ? 'cinematic-layer cinematic-layer--visible' : 'cinematic-layer'} aria-hidden="true">
-        <picture>
-          <source media="(max-width: 760px)" srcSet="/assets/aorb-faceoff-mobile.webp" type="image/webp" />
-          <img src="/assets/aorb-faceoff-reference.webp" alt="" width="1672" height="941" />
-        </picture>
-      </div>
 
       <header className="spatial-header">
         <a className="spatial-logo" href="/" aria-label="Return to AORB home">AORB<span>.</span></a>
@@ -278,6 +253,10 @@ export default function SpatialApp() {
       </header>
 
       <section className={audioPlaying ? 'now-playing now-playing--active' : 'now-playing'} aria-label="AORB techno player">
+        <div className="music-credit">
+          <img src="/assets/mortecai-studio-logo.png" alt="Mortecai Studio logo" width="36" height="36" />
+          <span>Music by <strong>Mortecai Studio</strong></span>
+        </div>
         <div className="music-selectors">
           <label>
             <ListMusic size={14} />
@@ -316,21 +295,14 @@ export default function SpatialApp() {
         <input className="now-playing__progress" type="range" min="0" max={playback.duration || 0} step="0.1" value={Math.min(playback.current, playback.duration || 0)} onChange={seekAudio} aria-label="Track progress" />
       </section>
 
-      <div className="mode-switch" aria-label="Presentation mode">
-        <button type="button" className={cinematic ? 'active' : ''} onClick={() => chooseMode(true)}><Image size={16} /> Cinematic</button>
-        <button type="button" className={!cinematic ? 'active' : ''} onClick={() => chooseMode(false)}><Box size={16} /> Spatial 360</button>
-      </div>
-
-      {!cinematic && (
-        <aside className="view-controls" aria-label="Camera views">
-          <span>Camera</span>
-          {views.map(([view, label]) => (
-            <button key={view} className={activeView === view ? 'active' : ''} type="button" onClick={() => chooseView(view)}>
-              <Eye size={16} /> {label}
-            </button>
-          ))}
-        </aside>
-      )}
+      <aside className="view-controls" aria-label="Camera views">
+        <span>Camera</span>
+        {views.map(([view, label]) => (
+          <button key={view} className={activeView === view ? 'active' : ''} type="button" onClick={() => chooseView(view)}>
+            <Eye size={16} /> {label}
+          </button>
+        ))}
+      </aside>
 
       <div className="spatial-toolbar">
         <button className={directorMode ? 'active' : ''} type="button" onClick={toggleDirector} aria-pressed={directorMode}>
