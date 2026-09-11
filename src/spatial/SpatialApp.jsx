@@ -255,7 +255,7 @@ export default function SpatialApp() {
       <section className={audioPlaying ? 'now-playing now-playing--active' : 'now-playing'} aria-label="AORB techno player">
         <div className="music-credit">
           <img src="/assets/mortecai-studio-logo.png" alt="Mortecai Studio logo" width="36" height="36" />
-          <span>Music by <strong>Mortecai Studio</strong></span>
+          <span>Music by <a href="https://mortecai.com" target="_blank" rel="noopener noreferrer"><strong>Mortecai Studio</strong></a></span>
         </div>
         <div className="music-selectors">
           <label>

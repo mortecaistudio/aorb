@@ -362,3 +362,6 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .music-credit { left: auto; right: 0; bottom: calc(100% + 43px); gap: 7px; font-size: 11px; }
   .music-credit img { width: 28px; height: 28px; }
 }
+
+.music-credit a { color: inherit; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: rgba(255, 255, 255, .45); }
+.music-credit a:hover { color: #b7ff00; text-decoration-color: currentColor; }

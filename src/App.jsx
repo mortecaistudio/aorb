@@ -190,7 +190,7 @@ function Closing() {
         <Logo />
         <p>Alliance of Rebels Europe</p>
         <a href="https://aorb.eu">aorb.eu</a>
-        <small className="footer-credit">Developed by Mortecai Studio</small>
+        <small className="footer-credit">Developed by <a href="https://mortecai.com" target="_blank" rel="noopener noreferrer"><img src="/assets/mortecai-studio-logo.png" alt="" width="32" height="32" /><span>Mortecai Studio</span></a></small>
       </footer>
     </section>
   )

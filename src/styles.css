@@ -218,3 +218,9 @@ body::before {
 }
 
 .closing footer .footer-credit { grid-column: 1 / -1; justify-self: center; font: 11px/1.5 var(--mono); letter-spacing: .04em; opacity: .85; margin-top: 12px; }
+
+.closing footer .footer-credit { display: flex; align-items: center; justify-content: center; gap: 8px; opacity: 1; flex-wrap: wrap; }
+.footer-credit a { display: inline-flex; align-items: center; gap: 8px; color: inherit; }
+.footer-credit img { display: block; width: 32px; height: 32px; object-fit: contain; }
+.footer-credit a:hover span { text-decoration: underline; text-underline-offset: 4px; }
+.footer-credit a:focus-visible { outline: 2px solid white; outline-offset: 4px; }
